@@ -1,0 +1,8 @@
+// If it's your own code in a non-standard location, add to .vscode/settings.json:
+{
+    "python.analysis.extraPaths": [
+        "./src",
+        "./lib"
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:system"
+}

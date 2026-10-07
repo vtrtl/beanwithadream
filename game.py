@@ -6,7 +6,7 @@ class Game:
 
     def __init__(self):
         self.width = 1200
-        self.height = 700
+        self.height = 600
         self.fps = 60
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Bean With A Dream")
@@ -32,8 +32,8 @@ class Game:
         self.load_game()
         running = True
         while running:
-            dt = self.clock.get_time() / 1000
-            self.clock.tick(self.fps)
+            dt = self.clock.tick(self.fps) / 1000
+            dt = min(dt, 0.05)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
