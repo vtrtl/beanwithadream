@@ -1,0 +1,10 @@
+{
+    "player_start": [200, 440],
+
+    "platforms": [
+        [0, 500, 3000, 150]
+    ],
+
+    "world_width": 3000,
+    "world_height": 650
+}
