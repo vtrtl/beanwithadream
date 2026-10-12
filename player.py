@@ -1,15 +1,22 @@
 import pygame
+import os 
+import camera
 
 class Player:
     def __init__(self, x, y):
-        self.width = 50
-        self.height = 80
+        self.width = 500
+        self.height = 500
         self.speed = 300
-        self.jump_strength = 650
-        self.gravity = 1800
-        self.rect = pygame.Rect(x, y, self.width, self.height)
-        self.velocity_y = 0
+        self.jump_strength = 600
+        self.gravity = 1500
+        # Load the bean sprite
+        self.image = pygame.image.load("assets/bean.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (self.width, self.height))
+
+        self.rect = pygame.Rect(int(x), int(y), self.width, self.height)
+        self.velocity_y = 0.0
         self.on_ground = False
+
     def move(self, platforms, dt):
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a]:
@@ -36,5 +43,6 @@ class Player:
                 elif self.velocity_y < 0: 
                     self.rect.top = platform.bottom
                 self.velocity_y = 0
-    def draw(self, screen):
-        pygame.draw.rect(screen, (80, 180, 255), self.rect)
+    def draw(self, screen, camera):
+        screen_rect = camera.apply(self.rect)
+        screen.blit(self.image, screen_rect)

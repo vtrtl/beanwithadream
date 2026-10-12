@@ -1,0 +1,18 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+/awsToolkit.xml
+/indexLayout.xml
+/vcs.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Rider ignored files
+/modules.xml
+/contentModel.xml
+/projectSettingsUpdater.xml
+/.idea.BEAN WITH A DREAMM.iml
+# Ignored default folder with query files
+/queries/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
