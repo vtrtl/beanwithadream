@@ -1,6 +1,6 @@
 import json
 import pygame
-
+from camera import Camera
 
 class Level:
     def __init__(self, filename):
@@ -9,7 +9,7 @@ class Level:
         self.platforms = []
         for platform in self.data["platforms"]:
             self.platforms.append(pygame.Rect(platform))
-        self.ground_colour = (0, 255, 0)
+        self.ground_colour = (102, 196, 48)
     def draw(self, screen, camera):
         for platform in self.platforms:
             screen_rect = camera.apply(platform)

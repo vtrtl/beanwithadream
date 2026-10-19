@@ -12,7 +12,7 @@ class Game:
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Bean With A Dream")
         self.clock = pygame.time.Clock()
-        self.background_color = (173, 216, 230)
+        self.background_color = (196, 207, 255)
         self.level = None
         self.player = None
         self.camera = Camera(self.width, self.height)
@@ -40,9 +40,13 @@ class Game:
                 if event.type == pygame.QUIT:
                     running = False
             self.player.move(self.level.platforms, dt)
+            # Update camera before drawing the player movement
+            self.camera.update(self.player, self.level.data["world_width"],self.level.data["world_height"])
             self.screen.fill(self.background_color)
             self.level.draw(self.screen, self.camera)
             self.player.draw(self.screen, self.camera)
+            if self.player.rect.top > self.level.data["world_height"]:
+                start_x, start_y = self.level.data["player_start"]
+                self.player.respawn(start_x, start_y)
             pygame.display.flip()
-            self.camera.update(self.player, self.level.data["world_width"],self.level.data["world_height"])
         pygame.quit()
