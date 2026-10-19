@@ -1,10 +1,10 @@
 import pygame
 
 SURFACES = {
-    "ground": {"colour": (102, 196, 48), "solid": True,  "deadly": False},
-    "lava":   {"colour": (220, 50, 50),  "solid": False, "deadly": True},
+    "ground": {"colour": (102, 196, 48), "solid": True,  "deadly": False, "water": False},
+    "lava":   {"colour": (220, 50, 50),  "solid": False, "deadly": True,  "water": False},
+    "water":  {"colour": (60, 120, 220), "solid": False, "deadly": False, "water": True},
 }
-
 
 class Tile:
     def __init__(self, rect, kind="ground"):
@@ -16,3 +16,4 @@ class Tile:
         self.colour = props["colour"]
         self.solid = props["solid"]
         self.deadly = props["deadly"]
+        self.water = props["water"]

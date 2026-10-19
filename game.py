@@ -6,18 +6,19 @@ from camera import Camera
 
 
 class Game:
-    DEBUG = False
+    DEBUG = False  #set True to print player state every frame
 
     def __init__(self):
         pygame.init()
         self.width = 1200
         self.height = 600
-        self.fps = 120
+        self.fps = 60
         self.death_count = 0
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.SCALED)
         pygame.display.set_caption("Bean With A Dream")
         self.clock = pygame.time.Clock()
         self.background_color = (196, 207, 255)
+        self.hud_font = pygame.font.Font(None, 32)
         self.level = None
         self.player = None
         self.camera = Camera(self.width, self.height)
@@ -38,9 +39,17 @@ class Game:
         self.player = Player(start_x, start_y)
 
     def draw_hud(self):
-        font = pygame.font.Font(None, 32)
-        text = font.render(f"Deaths: {self.death_count}", True, (255, 255, 255))
+        text = self.hud_font.render(f"Deaths: {self.death_count}", True, (255, 255, 255))
         self.screen.blit(text, (20, 20))
+        p = self.player
+        if p.breath < p.max_breath:
+            bar_w, bar_h = 200, 14
+            x, y = 20, 55
+            pygame.draw.rect(self.screen, (30, 30, 50), (x, y, bar_w, bar_h))
+            fill = int(bar_w * p.breath / p.max_breath)
+            colour = (90, 200, 255) if p.breath > 1.5 else (255, 120, 80)
+            pygame.draw.rect(self.screen, colour, (x, y, fill, bar_h))
+            pygame.draw.rect(self.screen, (255, 255, 255), (x, y, bar_w, bar_h), 2)
 
     def run(self):
         self.loading_screen()
@@ -60,18 +69,24 @@ class Game:
             if not running:
                 break
 
-            self.player.move(self.level.platforms, dt)
+            dead = False
+            reason = None
+
+            if self.player.respawn_lock <= 0:
+                if self.player.update_water(self.level.water, dt):
+                    dead = True
+                    reason = "drowned"
+
+            self.player.move(self.level.platforms, dt, self.level.data["world_width"])
 
             if self.DEBUG:
                 p = self.player
                 print(
                     f"x={p.rect.x} y={p.rect.y} vy={p.velocity_y:.0f} "
-                    f"lock={p.respawn_lock:.2f} ground={p.on_ground} "
-                    f"deaths={self.death_count}"
+                    f"breath={p.breath:.1f} water={p.in_water} deaths={self.death_count}"
                 )
-            dead = False
-            reason = None
-            if self.player.respawn_lock <= 0:
+
+            if not dead and self.player.respawn_lock <= 0:
                 if self.player.rect.top > self.level.data["world_height"]:
                     dead = True
                     reason = "fell into the abyss"
@@ -82,9 +97,9 @@ class Game:
                             reason = f"touched lava {hazard}"
                             break
 
-
             if dead:
-                print(f"DIED: {reason} at x={self.player.rect.x} y={self.player.rect.y}")
+                if self.DEBUG:
+                    print(f"DIED: {reason} at x={self.player.rect.x} y={self.player.rect.y}")
                 self.death_count += 1
                 start_x, start_y = self.level.data["player_start"]
                 self.player.respawn(start_x, start_y)
@@ -98,6 +113,7 @@ class Game:
             self.screen.fill(self.background_color)
             self.level.draw(self.screen, self.camera)
             self.player.draw(self.screen, self.camera)
+            self.level.draw_water(self.screen, self.camera)
             self.draw_hud()
             pygame.display.flip()
 

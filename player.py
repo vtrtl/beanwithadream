@@ -2,7 +2,6 @@ import pygame
 
 
 class Player:
-
     SPAWN_Y_IS_FEET = True
 
     def __init__(self, x, y):
@@ -15,6 +14,15 @@ class Player:
         self.max_fall_speed = 900
         self.deaths = 0
         self.respawn_lock = 0.0
+        self.max_breath = 5.0
+        self.breath = self.max_breath
+        self.breath_refill_rate = 3.0
+        self.in_water = False
+        self.submerged = False
+        self.water_speed_mult = 0.6
+        self.water_gravity_mult = 0.4
+        self.water_max_fall = 200
+        self.swim_speed = 220
 
         self.image = pygame.image.load("assets/bean.png").convert_alpha()
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
@@ -29,14 +37,23 @@ class Player:
         self.on_ground = False
 
     def _place_at_spawn(self, x, y):
-        """Put the player at the spawn point and keep float positions in sync."""
         self.rect.x = int(x) + self.collision_inset
         self.rect.y = int(y) - self.height if self.SPAWN_Y_IS_FEET else int(y)
         self.pos_x = float(self.rect.x)
         self.pos_y = float(self.rect.y)
 
+    def update_water(self, water_rects, dt):
+        head = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 20)
+        self.in_water = any(self.rect.colliderect(w) for w in water_rects)
+        self.submerged = any(head.colliderect(w) for w in water_rects)
+
+        if self.submerged:
+            self.breath = max(0.0, self.breath - dt)
+        else:
+            self.breath = min(self.max_breath, self.breath + self.breath_refill_rate * dt)
+        return self.breath <= 0
+
     def move(self, platforms, dt, world_width=None):
-        # freeze everything first so gravity can't build up while locked
         if self.respawn_lock > 0:
             self.respawn_lock -= dt
             return
@@ -48,8 +65,10 @@ class Player:
         if keys[pygame.K_d]:
             movement_x += 1
 
-        # ---- horizontal movement ----
-        self.pos_x += movement_x * self.speed * dt
+        speed = self.speed * (self.water_speed_mult if self.in_water else 1.0)
+
+        #horizontal movement
+        self.pos_x += movement_x * speed * dt
         self.rect.x = round(self.pos_x)
         for platform in platforms:
             if not self.rect.colliderect(platform):
@@ -68,14 +87,18 @@ class Player:
             self.rect.right = world_width
             self.pos_x = float(self.rect.x)
 
-        # ---- jump (uses on_ground from the previous frame) ----
-        if keys[pygame.K_SPACE] and self.on_ground:
-            self.velocity_y = -self.jump_strength
-            self.on_ground = False
+        #jump / swim
+        if keys[pygame.K_SPACE]:
+            if self.on_ground:
+                self.velocity_y = -self.jump_strength
+                self.on_ground = False
+            elif self.in_water:
+                self.velocity_y = -self.swim_speed
 
-        # ---- vertical movement ----
-        self.velocity_y += self.gravity * dt
-        self.velocity_y = min(self.velocity_y, self.max_fall_speed)
+        gravity = self.gravity * (self.water_gravity_mult if self.in_water else 1.0)
+        max_fall = self.water_max_fall if self.in_water else self.max_fall_speed
+        self.velocity_y += gravity * dt
+        self.velocity_y = min(self.velocity_y, max_fall)
         self.pos_y += self.velocity_y * dt
         self.rect.y = round(self.pos_y)
 
@@ -92,8 +115,6 @@ class Player:
             self.velocity_y = 0.0
             break
 
-        # ground probe: resting exactly on a platform counts as grounded,
-        # which stops the sink-and-pop-up cycle
         if not self.on_ground and self.velocity_y >= 0:
             probe = self.rect.move(0, 1)
             if any(probe.colliderect(p) for p in platforms):
@@ -112,9 +133,11 @@ class Player:
         screen_rect = camera.apply(self.rect)
         pygame.draw.rect(screen, (255, 0, 0), screen_rect, 2)
 
-    # respawn the player (falling off the world, hitting a hazard, etc.)
     def respawn(self, x, y):
         self.respawn_lock = 0.2
         self._place_at_spawn(x, y)
         self.velocity_y = 0.0
         self.on_ground = False
+        self.breath = self.max_breath
+        self.in_water = False
+        self.submerged = False
