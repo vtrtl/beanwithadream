@@ -2,6 +2,8 @@ import pygame
 
 
 class Player:
+    # True: player_start's y is where the bean's FEET go (stands on the platform).
+    # False: player_start's y is the TOP of the bean (old behaviour).
     SPAWN_Y_IS_FEET = True
 
     def __init__(self, x, y):
@@ -14,9 +16,19 @@ class Player:
         self.max_fall_speed = 900
         self.deaths = 0
         self.respawn_lock = 0.0
-        self.max_breath = 5.0
+
+        # health
+        self.max_health = 100
+        self.health = self.max_health
+        self.invincible_time = 1.0     # seconds of immunity after a hit
+        self.invincible_timer = 0.0
+        self.flash_timer = 0.0         # blink only after taking damage
+        self.stomp_bounce = 400
+
+        # water / drowning
+        self.max_breath = 5.0        # seconds the head can stay underwater
         self.breath = self.max_breath
-        self.breath_refill_rate = 3.0
+        self.breath_refill_rate = 3.0  # breath regained per second out of water
         self.in_water = False
         self.submerged = False
         self.water_speed_mult = 0.6
@@ -37,12 +49,29 @@ class Player:
         self.on_ground = False
 
     def _place_at_spawn(self, x, y):
+        """Put the player at the spawn point and keep float positions in sync."""
         self.rect.x = int(x) + self.collision_inset
         self.rect.y = int(y) - self.height if self.SPAWN_Y_IS_FEET else int(y)
         self.pos_x = float(self.rect.x)
         self.pos_y = float(self.rect.y)
 
+    def take_damage(self, amount):
+        """Returns True if the hit landed (False while invincible)."""
+        if self.invincible_timer > 0:
+            return False
+        self.health = max(0, self.health - amount)
+        self.invincible_timer = self.invincible_time
+        self.flash_timer = self.invincible_time
+        return True
+
+    def bounce(self):
+        """Hop up after stomping an enemy."""
+        self.velocity_y = -self.stomp_bounce
+        self.on_ground = False
+        self.invincible_timer = max(self.invincible_timer, 0.3)
+
     def update_water(self, water_rects, dt):
+        """Work out if we're in water, drain/refill breath. Returns True if drowned."""
         head = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 20)
         self.in_water = any(self.rect.colliderect(w) for w in water_rects)
         self.submerged = any(head.colliderect(w) for w in water_rects)
@@ -54,9 +83,15 @@ class Player:
         return self.breath <= 0
 
     def move(self, platforms, dt, world_width=None):
+        # freeze everything first so gravity can't build up while locked
         if self.respawn_lock > 0:
             self.respawn_lock -= dt
             return
+
+        if self.invincible_timer > 0:
+            self.invincible_timer -= dt
+        if self.flash_timer > 0:
+            self.flash_timer -= dt
 
         keys = pygame.key.get_pressed()
         movement_x = 0
@@ -67,7 +102,7 @@ class Player:
 
         speed = self.speed * (self.water_speed_mult if self.in_water else 1.0)
 
-        #horizontal movement
+        # ---- horizontal movement ----
         self.pos_x += movement_x * speed * dt
         self.rect.x = round(self.pos_x)
         for platform in platforms:
@@ -87,7 +122,7 @@ class Player:
             self.rect.right = world_width
             self.pos_x = float(self.rect.x)
 
-        #jump / swim
+        # ---- jump / swim (uses on_ground from the previous frame) ----
         if keys[pygame.K_SPACE]:
             if self.on_ground:
                 self.velocity_y = -self.jump_strength
@@ -95,6 +130,7 @@ class Player:
             elif self.in_water:
                 self.velocity_y = -self.swim_speed
 
+        # ---- vertical movement ----
         gravity = self.gravity * (self.water_gravity_mult if self.in_water else 1.0)
         max_fall = self.water_max_fall if self.in_water else self.max_fall_speed
         self.velocity_y += gravity * dt
@@ -115,6 +151,7 @@ class Player:
             self.velocity_y = 0.0
             break
 
+        # ground probe: resting exactly on a platform counts as grounded
         if not self.on_ground and self.velocity_y >= 0:
             probe = self.rect.move(0, 1)
             if any(probe.colliderect(p) for p in platforms):
@@ -123,6 +160,9 @@ class Player:
                 self.pos_y = float(self.rect.y)
 
     def draw(self, screen, camera):
+        # blink while invincible
+        if self.flash_timer > 0 and int(self.flash_timer * 10) % 2 == 0:
+            return
         image_rect = pygame.Rect(
             self.rect.x - self.collision_inset,
             self.rect.y,
@@ -133,6 +173,7 @@ class Player:
         screen_rect = camera.apply(self.rect)
         pygame.draw.rect(screen, (255, 0, 0), screen_rect, 2)
 
+    # respawn the player (falling off the world, hazards, drowning, etc.)
     def respawn(self, x, y):
         self.respawn_lock = 0.2
         self._place_at_spawn(x, y)
@@ -141,3 +182,6 @@ class Player:
         self.breath = self.max_breath
         self.in_water = False
         self.submerged = False
+        self.health = self.max_health
+        self.invincible_timer = 0.0
+        self.flash_timer = 0.0

@@ -1,18 +1,36 @@
 {
-    "player_start": [200, 500],
-    "world_width": 3000,
+    "name": "Level 1 - First Steps",
+    "player_start": [150, 500],
+    "world_width": 5000,
     "world_height": 650,
+    "exit": [4900, 380, 60, 120],
     "tiles": [
-        {"rect": [0, 500, 700, 150],    "type": "ground"},
-        {"rect": [850, 550, 550, 150],  "type": "ground"},
-        {"rect": [1500, 550, 550, 150], "type": "ground"},
-        {"rect": [500, 450, 180, 30],   "type": "ground"},
-        {"rect": [850, 350, 180, 30],   "type": "ground"},
-        {"rect": [1250, 450, 250, 30],  "type": "ground"},
-        {"rect": [1800, 380, 220, 30],  "type": "ground"},
-        {"rect": [350, 480, 150, 20],   "type": "lava"},
-        {"rect": [1350, 480, 150, 20],  "type": "lava"},
-        {"rect": [700, 600, 150, 50],   "type": "ground"},
-        {"rect": [700, 500, 150, 100],  "type": "water"}
+        {"rect": [0, 500, 1050, 150],    "type": "ground"},
+        {"rect": [600, 480, 90, 20],     "type": "lava"},
+
+        {"rect": [1190, 500, 450, 150],  "type": "ground"},
+
+        {"rect": [1790, 500, 250, 150],  "type": "ground"},
+        {"rect": [2120, 440, 150, 30],   "type": "ground"},
+        {"rect": [2340, 380, 150, 30],   "type": "ground"},
+        {"rect": [2560, 320, 150, 30],   "type": "ground"},
+        {"rect": [2780, 260, 260, 30],   "type": "ground"},
+
+        {"rect": [2850, 500, 200, 150],  "type": "ground"},
+
+        {"rect": [3050, 620, 500, 30],   "type": "ground"},
+        {"rect": [3050, 500, 500, 120],  "type": "water"},
+        {"rect": [3150, 440, 300, 60],   "type": "ground"},
+        {"rect": [3150, 420, 300, 20],   "type": "lava"},
+
+        {"rect": [3550, 500, 500, 150],  "type": "ground"},
+
+        {"rect": [4190, 500, 810, 150],  "type": "ground"},
+        {"rect": [4720, 480, 90, 20],    "type": "lava"}
+    ],
+    "enemies": [
+        {"x": 1400, "y": 500, "patrol": [1260, 1600], "type": "walker"},
+        {"x": 3750, "y": 500, "patrol": [3700, 4030], "type": "walker"},
+        {"x": 4400, "y": 500, "patrol": [4300, 4650], "type": "walker"}
     ]
 }
