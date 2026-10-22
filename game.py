@@ -4,6 +4,7 @@ from player import Player
 from level import Level
 from camera import Camera
 from objective import ObjectiveTracker
+from performance import LevelPerformance, PerformanceHistory
 from menu import MainMenu
 from level_complete import LevelCompleteScreen
 from visuals import Background, ParticleSystem, make_ambient
@@ -12,7 +13,7 @@ from themes import THEME_NAMES
 
 class Game:
     DEBUG = False
-    LEVEL_PATH = "levels/level1.json"
+    LEVELS = ["levels/level1.json", "levels/level2.json", "levels/level3.json"]
     THEME_PREVIEW = True  # press T while playing to cycle through the themes
 
     def __init__(self):
@@ -47,9 +48,10 @@ class Game:
         self.player = None
         self.objectives = None
         self.camera = Camera(self.width, self.height)
-        self.death_count = 0
-        self.level_time = 0.0
-        self.damage_taken = 0
+        self.perf = LevelPerformance("")           # replaced by start_level
+        self.history = PerformanceHistory()        # last few finished levels, saved to disk
+        self.level_index = 0
+        self.checkpoint = None                     # (x_centre, y_feet) of the last flag reached
         self.hint_text = ""
         self.hint_timer = 0.0
 
@@ -63,19 +65,23 @@ class Game:
         pygame.event.pump()
         time.sleep(1)
 
-    def start_level(self):
-        self.level = Level(self.LEVEL_PATH)
+    def start_level(self, index=None):
+        if index is not None:
+            self.level_index = index
+        self.level = Level(self.LEVELS[self.level_index])
         self.apply_theme()
         start_x, start_y = self.level.data["player_start"]
         self.player = Player(start_x, start_y)
         self.camera = Camera(self.width, self.height)
         self.objectives = ObjectiveTracker(self.level.data.get("objectives", []))
         self.particles = ParticleSystem()
-        self.death_count = 0
-        self.level_time = 0.0
-        self.damage_taken = 0
-        self.hint_text = ""
-        self.hint_timer = 0.0
+        self.perf = LevelPerformance(
+            self.level.data.get("name", self.LEVELS[self.level_index]),
+            self.level.data.get("par_time"),
+        )
+        self.checkpoint = None
+        self.hint_text = self.level.data.get("name", "")  # level title banner
+        self.hint_timer = 3.0
         self.state = "playing"
 
     def apply_theme(self):
@@ -85,13 +91,12 @@ class Game:
         self.ambient = make_ambient(theme, self.width, self.height)
 
     def finish_level(self):
-        self.complete_screen.set_results({
-            "time": self.level_time,
-            "deaths": self.death_count,
-            "damage_taken": self.damage_taken,
-            "objectives_done": self.objectives.completed_count,
-            "objectives_total": self.objectives.total,
-        })
+        self.perf.finish(self.objectives.completed_count, self.objectives.total)
+        self.history.add(self.perf)
+        if self.DEBUG:
+            print("Level complete:", self.perf.to_dict())
+        has_next = self.level_index + 1 < len(self.LEVELS)
+        self.complete_screen.set_results(self.perf.to_dict(), has_next)
         self.state = "level_complete"
 
     # ------------------------------------------------------------ main loop
@@ -124,7 +129,7 @@ class Game:
     def run_menu(self, events):
         action = self.menu.handle(events)
         if action == "play":
-            self.start_level()
+            self.start_level(0)
             return
         if action == "quit":
             self.running = False
@@ -134,6 +139,9 @@ class Game:
     # ------------------------------------------------------------ level complete
     def run_level_complete(self, events):
         action = self.complete_screen.handle(events)
+        if action == "next":
+            self.start_level(self.level_index + 1)
+            return
         if action == "again":
             self.start_level()
             return
@@ -168,7 +176,7 @@ class Game:
         return self.player.rect.centery
 
     def update_playing(self, dt):
-        self.level_time += dt
+        self.perf.tick(dt)
         if self.hint_timer > 0:
             self.hint_timer -= dt
         self.particles.update(dt)
@@ -207,18 +215,18 @@ class Game:
         if self.DEBUG:
             print(
                 f"x={p.rect.x} y={p.rect.y} vy={p.velocity_y:.0f} "
-                f"breath={p.breath:.1f} water={p.in_water} deaths={self.death_count}"
+                f"breath={p.breath:.1f} water={p.in_water} deaths={self.perf.deaths}"
             )
 
         if not dead and p.respawn_lock <= 0:
             if p.rect.top > self.level.data["world_height"]:
                 dead = True
-                reason = "fell into the abyss"
+                reason = "abyss"
             else:
                 for hazard in self.level.hazards:
                     if p.rect.colliderect(hazard):
                         dead = True
-                        reason = f"touched lava {hazard}"
+                        reason = "lava"
                         break
 
         # enemies: patrol, then contact (stomp from above, otherwise take damage)
@@ -233,6 +241,7 @@ class Game:
                 if enemy.take_damage(1):
                     self.level.enemies.remove(enemy)
                     self.objectives.on_event("enemy_defeated")
+                    self.perf.record_defeat("stomp")
                     self.particles.emit(
                         enemy.rect.centerx, enemy.rect.centery,
                         [(150, 60, 180), (190, 110, 215), (255, 255, 255)],
@@ -240,7 +249,7 @@ class Game:
                     )
                 p.bounce()
             elif p.take_damage(enemy.damage):
-                self.damage_taken += enemy.damage
+                self.perf.record_damage(enemy.damage)
                 self.particles.emit(
                     p.rect.centerx, p.rect.centery,
                     [(255, 90, 90), (255, 200, 200)],
@@ -248,7 +257,7 @@ class Game:
                 )
                 if p.health <= 0:
                     dead = True
-                    reason = "killed by an enemy"
+                    reason = "enemy"
 
         if dead:
             if self.DEBUG:
@@ -258,9 +267,25 @@ class Game:
                 [(255, 255, 255), (255, 120, 80), (255, 210, 90)],
                 count=26, speed=260, up=140, size=(3, 7),
             )
-            self.death_count += 1
-            start_x, start_y = self.level.data["player_start"]
-            p.respawn(start_x, start_y)
+            self.perf.record_death(reason)
+            if self.checkpoint:
+                p.respawn(self.checkpoint[0] - p.width // 2, self.checkpoint[1])
+            else:
+                start_x, start_y = self.level.data["player_start"]
+                p.respawn(start_x, start_y)
+
+        # checkpoints: reaching a flag makes it your new respawn point (forward only)
+        for cx, cy in self.level.checkpoints:
+            current_x = self.checkpoint[0] if self.checkpoint else -1
+            if (not dead and cx > current_x and p.rect.centerx >= cx
+                    and abs(p.rect.bottom - cy) < 200):
+                self.checkpoint = (cx, cy)
+                self.hint_text = "Checkpoint reached"
+                self.hint_timer = 1.5
+                self.particles.emit(
+                    cx, cy - 40, [(120, 255, 150), (255, 255, 255), (255, 240, 150)],
+                    count=14, speed=150, up=140,
+                )
 
         # exit door: only opens once the required objectives are done
         if not dead and self.level.exit_rect and p.rect.colliderect(self.level.exit_rect):
@@ -281,6 +306,7 @@ class Game:
         self.background.draw(self.screen, self.camera.offset_x, self.camera.offset_y, t)
         self.level.draw(self.screen, self.camera, t)
         self.level.draw_exit(self.screen, self.camera, self.objectives.required_done, t)
+        self.level.draw_checkpoints(self.screen, self.camera, self.checkpoint, t)
         for enemy in self.level.enemies:
             enemy.draw(self.screen, self.camera)
         self.player.draw(self.screen, self.camera)
@@ -307,7 +333,7 @@ class Game:
     def draw_hud(self):
         p = self.player
         self.screen.blit(self.hud_panel, (10, 10))
-        self.draw_text(self.hud_font, f"Deaths: {self.death_count}", (255, 255, 255), (22, 18))
+        self.draw_text(self.hud_font, f"Deaths: {self.perf.deaths}", (255, 255, 255), (22, 18))
         self.draw_bar(22, 52, 180, 16, p.health / p.max_health, (220, 60, 60), "HP")
 
         # breath bar: only shown once the player has started running out of air

@@ -1,0 +1,39 @@
+{
+    "name": "Level 2 - Moonlit Ledges",
+    "theme": "night",
+    "par_time": 110,
+    "checkpoints": [[2140, 500], [3070, 300], [3910, 500]],
+    "player_start": [150, 500],
+    "world_width": 5400,
+    "world_height": 650,
+    "exit": [5290, 380, 60, 120],
+    "objectives": [
+        {"id": "defeat_guards", "type": "enemy_defeated", "target": 3, "text": "Defeat the guards", "required": true}
+    ],
+    "tiles": [
+        {"rect": [0, 500, 650, 150], "type": "ground"},
+        {"rect": [650, 560, 1060, 90], "type": "lava"},
+        {"rect": [770, 460, 110, 30], "type": "ground"},
+        {"rect": [1010, 400, 100, 30], "type": "ground"},
+        {"rect": [1250, 450, 100, 30], "type": "ground"},
+        {"rect": [1480, 390, 100, 30], "type": "ground"},
+        {"rect": [1710, 500, 480, 150], "type": "ground"},
+        {"rect": [2190, 560, 1350, 90], "type": "lava"},
+        {"rect": [2320, 440, 100, 30], "type": "ground"},
+        {"rect": [2560, 370, 100, 30], "type": "ground"},
+        {"rect": [2800, 300, 100, 30], "type": "ground"},
+        {"rect": [3030, 300, 380, 30], "type": "ground"},
+        {"rect": [3540, 500, 420, 150], "type": "ground"},
+        {"rect": [3960, 560, 1070, 90], "type": "lava"},
+        {"rect": [4090, 450, 100, 30], "type": "ground"},
+        {"rect": [4330, 390, 100, 30], "type": "ground"},
+        {"rect": [4570, 440, 100, 30], "type": "ground"},
+        {"rect": [4800, 380, 100, 30], "type": "ground"},
+        {"rect": [5030, 500, 370, 150], "type": "ground"}
+    ],
+    "enemies": [
+        {"x": 1800, "y": 500, "patrol": [1770, 2050], "type": "walker"},
+        {"x": 3200, "y": 300, "patrol": [3170, 3390], "type": "walker"},
+        {"x": 3650, "y": 500, "patrol": [3600, 3800], "type": "walker"}
+    ]
+}

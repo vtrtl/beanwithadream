@@ -243,6 +243,18 @@ def draw_exit(screen, r, unlocked, t):
         pygame.draw.arc(screen, (60, 60, 70), (body.x + 3, body.y - 14, 16, 20), 0, math.pi, 3)
 
 
+def draw_checkpoint(screen, x, y, active, t):
+    """A flag on a pole. (x, y) is where its base touches the ground, in screen coordinates."""
+    pole = (205, 205, 215)
+    pygame.draw.rect(screen, pole, (x - 3, y - 72, 6, 72))
+    pygame.draw.circle(screen, pole, (x, y - 74), 5)
+    colour = (90, 220, 120) if active else (150, 150, 162)
+    wave = 3 * math.sin(t * 5) if active else 0
+    points = [(x + 3, y - 70), (x + 38, y - 58 + wave), (x + 3, y - 46)]
+    pygame.draw.polygon(screen, colour, points)
+    pygame.draw.polygon(screen, _shade(colour, 0.6), points, 2)
+
+
 # ---------------------------------------------------------------- enemy
 def make_enemy_surface(w, h, facing, colour=(150, 60, 180)):
     """A grumpy blob in the theme's enemy colour. facing is 1 (right) or -1 (left)."""

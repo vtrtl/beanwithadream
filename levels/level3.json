@@ -1,0 +1,35 @@
+{
+    "name": "Level 3 - Frostbite Gauntlet",
+    "theme": "snow",
+    "par_time": 130,
+    "checkpoints": [[860, 500], [2300, 500], [3250, 500], [3660, 500]],
+    "player_start": [150, 500],
+    "world_width": 5000,
+    "world_height": 650,
+    "exit": [4900, 380, 60, 120],
+    "objectives": [
+        {"id": "defeat_five", "type": "enemy_defeated", "target": 5, "text": "Defeat 5 enemies", "required": true},
+        {"id": "defeat_all", "type": "enemy_defeated", "target": 7, "text": "Defeat every enemy", "required": false}
+    ],
+    "tiles": [
+        {"rect": [0, 500, 900, 150], "type": "ground"},
+        {"rect": [1050, 500, 700, 150], "type": "ground"},
+        {"rect": [1750, 620, 500, 30], "type": "ground"},
+        {"rect": [1750, 500, 500, 120], "type": "water"},
+        {"rect": [1850, 440, 140, 30], "type": "ground"},
+        {"rect": [2050, 440, 140, 30], "type": "ground"},
+        {"rect": [2250, 500, 800, 150], "type": "ground"},
+        {"rect": [3200, 500, 500, 150], "type": "ground"},
+        {"rect": [3850, 500, 1150, 150], "type": "ground"},
+        {"rect": [4000, 480, 80, 20], "type": "lava"}
+    ],
+    "enemies": [
+        {"x": 500, "y": 500, "patrol": [450, 800], "type": "walker"},
+        {"x": 1150, "y": 500, "patrol": [1130, 1400], "type": "walker"},
+        {"x": 1500, "y": 500, "patrol": [1450, 1720], "type": "walker"},
+        {"x": 2400, "y": 500, "patrol": [2360, 2570], "type": "walker"},
+        {"x": 2700, "y": 500, "patrol": [2640, 2900], "type": "walker"},
+        {"x": 3450, "y": 500, "patrol": [3380, 3600], "type": "walker"},
+        {"x": 4300, "y": 500, "patrol": [4200, 4650], "type": "walker"}
+    ]
+}

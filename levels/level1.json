@@ -1,6 +1,8 @@
 {
     "name": "Level 1 - First Steps",
-    "theme": "snow",
+    "theme": "forest",
+    "par_time": 90,
+    "checkpoints": [[1850, 500], [2900, 500], [3600, 500]],
     "player_start": [150, 500],
     "world_width": 5000,
     "world_height": 650,

@@ -41,6 +41,9 @@ class Level:
         for e in self.data.get("enemies", []):
             self.enemies.append(Enemy(e["x"], e["y"], e.get("patrol"), colour=self.theme["enemy"]))
 
+        # checkpoints: [[x_centre, y_feet], ...] in the order you reach them
+        self.checkpoints = [tuple(c) for c in self.data.get("checkpoints", [])]
+
         # exit door: "exit": [x, y, w, h]
         exit_data = self.data.get("exit")
         self.exit_rect = pygame.Rect(exit_data) if exit_data else None
@@ -62,6 +65,13 @@ class Level:
         self._build_surfaces()
         for enemy in self.enemies:
             enemy.set_colour(self.theme["enemy"])
+
+    def draw_checkpoints(self, screen, camera, active, t=0.0):
+        """active is the (x, y) of the checkpoint the player last reached, or None."""
+        for cx, cy in self.checkpoints:
+            sx, sy = cx - camera.offset_x, cy - camera.offset_y
+            if -60 < sx < screen.get_width() + 60:
+                visuals.draw_checkpoint(screen, int(sx), int(sy), (cx, cy) == active, t)
 
     def draw_exit(self, screen, camera, unlocked, t=0.0):
         if self.exit_rect:
