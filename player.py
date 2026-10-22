@@ -6,10 +6,18 @@ class Player:
     # False: player_start's y is the TOP of the bean (old behaviour).
     SPAWN_Y_IS_FEET = True
 
+    # draw the red collision box (handy when debugging collisions)
+    SHOW_HITBOX = True
+
+    # Shrink the hitbox inside the visible bean, in pixels.
+    # X is taken off BOTH the left and the right; TOP is taken off the head.
+    # The feet stay put so the bean still stands exactly on the ground.
+    HITBOX_SHRINK_X = 20
+    HITBOX_SHRINK_TOP = 5
+
     def __init__(self, x, y):
         self.width = 100
         self.height = 100
-        self.collision_inset = 5
         self.speed = 300
         self.jump_strength = 600
         self.gravity = 1500
@@ -38,20 +46,27 @@ class Player:
 
         self.image = pygame.image.load("assets/bean.png").convert_alpha()
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
+        self.image_left = pygame.transform.flip(self.image, True, False)
+        self.facing = 1
 
-        self.rect = pygame.Rect(
-            0, 0,
-            self.width - (self.collision_inset * 2),
-            self.height,
-        )
+        # Size the hitbox from the artwork itself: the tight box around the
+        # non-transparent pixels, so what you see is what collides.
+        self.bounds_right = self.image.get_bounding_rect()
+        self.bounds_left = self.image_left.get_bounding_rect()
+        hit_w = max(1, self.bounds_right.width - 2 * self.HITBOX_SHRINK_X)
+        hit_h = max(1, self.bounds_right.height - self.HITBOX_SHRINK_TOP)
+        self.rect = pygame.Rect(0, 0, hit_w, hit_h)
         self._place_at_spawn(x, y)
         self.velocity_y = 0.0
         self.on_ground = False
 
     def _place_at_spawn(self, x, y):
         """Put the player at the spawn point and keep float positions in sync."""
-        self.rect.x = int(x) + self.collision_inset
-        self.rect.y = int(y) - self.height if self.SPAWN_Y_IS_FEET else int(y)
+        self.rect.centerx = int(x) + self.width // 2
+        if self.SPAWN_Y_IS_FEET:
+            self.rect.bottom = int(y)
+        else:
+            self.rect.top = int(y)
         self.pos_x = float(self.rect.x)
         self.pos_y = float(self.rect.y)
 
@@ -99,6 +114,8 @@ class Player:
             movement_x -= 1
         if keys[pygame.K_d]:
             movement_x += 1
+        if movement_x != 0:
+            self.facing = 1 if movement_x > 0 else -1
 
         speed = self.speed * (self.water_speed_mult if self.in_water else 1.0)
 
@@ -163,15 +180,26 @@ class Player:
         # blink while invincible
         if self.flash_timer > 0 and int(self.flash_timer * 10) % 2 == 0:
             return
-        image_rect = pygame.Rect(
-            self.rect.x - self.collision_inset,
-            self.rect.y,
-            self.width,
-            self.height,
-        )
-        screen.blit(self.image, camera.apply(image_rect))
-        screen_rect = camera.apply(self.rect)
-        pygame.draw.rect(screen, (255, 0, 0), screen_rect, 2)
+        flipped = self.facing < 0
+        img = self.image_left if flipped else self.image
+        bounds = self.bounds_left if flipped else self.bounds_right
+
+        # squash and stretch with vertical speed
+        sx = sy = 1.0
+        stretch = min(abs(self.velocity_y) / 900, 1.0) * 0.15
+        if stretch > 0.01:
+            new_w = int(self.width * (1 - stretch * 0.6))
+            new_h = int(self.height * (1 + stretch))
+            img = pygame.transform.scale(img, (new_w, new_h))
+            sx, sy = new_w / self.width, new_h / self.height
+
+        # line up the artwork's visible bottom-centre with the hitbox's bottom-centre
+        x = self.rect.centerx - bounds.centerx * sx
+        y = self.rect.bottom - bounds.bottom * sy
+        screen.blit(img, camera.apply(pygame.Rect(round(x), round(y), *img.get_size())))
+
+        if self.SHOW_HITBOX:
+            pygame.draw.rect(screen, (255, 0, 0), camera.apply(self.rect), 2)
 
     # respawn the player (falling off the world, hazards, drowning, etc.)
     def respawn(self, x, y):

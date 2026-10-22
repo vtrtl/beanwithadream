@@ -1,9 +1,14 @@
 {
     "name": "Level 1 - First Steps",
+    "theme": "snow",
     "player_start": [150, 500],
     "world_width": 5000,
     "world_height": 650,
     "exit": [4900, 380, 60, 120],
+    "objectives": [
+        {"id": "defeat_walkers", "type": "enemy_defeated", "target": 3,
+         "text": "Defeat the walkers", "required": true}
+    ],
     "tiles": [
         {"rect": [0, 500, 1050, 150],    "type": "ground"},
         {"rect": [600, 480, 90, 20],     "type": "lava"},

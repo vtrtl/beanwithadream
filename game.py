@@ -3,158 +3,341 @@ import time
 from player import Player
 from level import Level
 from camera import Camera
+from objective import ObjectiveTracker
+from menu import MainMenu
+from level_complete import LevelCompleteScreen
+from visuals import Background, ParticleSystem, make_ambient
+from themes import THEME_NAMES
 
 
 class Game:
-    DEBUG = False  # set True to print player state every frame
+    DEBUG = False
+    LEVEL_PATH = "levels/level1.json"
+    THEME_PREVIEW = True  # press T while playing to cycle through the themes
 
     def __init__(self):
         pygame.init()
         self.width = 1200
         self.height = 600
         self.fps = 60
-        self.death_count = 0
-        self.frame_count = 0
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.SCALED)
         pygame.display.set_caption("Bean With A Dream")
         self.clock = pygame.time.Clock()
-        self.background_color = (196, 207, 255)
         self.hud_font = pygame.font.Font(None, 32)
+        self.small_font = pygame.font.Font(None, 26)
+
+        self.menu_background = Background(self.width, self.height)  # menu always uses forest
+        self.background = self.menu_background
+        self.ambient = None
+        self.particles = ParticleSystem()
+        self.anim_time = 0.0  # drives all the animations
+
+        # translucent panel behind the top-left HUD
+        self.hud_panel = pygame.Surface((250, 100), pygame.SRCALPHA)
+        pygame.draw.rect(self.hud_panel, (20, 20, 40, 120), self.hud_panel.get_rect(), border_radius=12)
+
+        # states: "menu", "playing", "level_complete"
+        self.state = "menu"
+        self.running = True
+        self.menu = MainMenu(self.width, self.height)
+        self.complete_screen = LevelCompleteScreen(self.width, self.height)
+
+        # per-level data (filled in by start_level)
         self.level = None
         self.player = None
+        self.objectives = None
         self.camera = Camera(self.width, self.height)
+        self.death_count = 0
+        self.level_time = 0.0
+        self.damage_taken = 0
+        self.hint_text = ""
+        self.hint_timer = 0.0
 
+    # ------------------------------------------------------------ setup
     def loading_screen(self):
         self.screen.fill((20, 20, 30))
         font = pygame.font.Font(None, 60)
         text = font.render("Loading...", True, (255, 255, 255))
-        text_rect = text.get_rect(center=(self.width // 2, self.height // 2))
-        self.screen.blit(text, text_rect)
+        self.screen.blit(text, text.get_rect(center=(self.width // 2, self.height // 2)))
         pygame.display.flip()
         pygame.event.pump()
         time.sleep(1)
 
-    def load_game(self):
-        self.level = Level("levels/level1.json")
+    def start_level(self):
+        self.level = Level(self.LEVEL_PATH)
+        self.apply_theme()
         start_x, start_y = self.level.data["player_start"]
         self.player = Player(start_x, start_y)
+        self.camera = Camera(self.width, self.height)
+        self.objectives = ObjectiveTracker(self.level.data.get("objectives", []))
+        self.particles = ParticleSystem()
+        self.death_count = 0
+        self.level_time = 0.0
+        self.damage_taken = 0
+        self.hint_text = ""
+        self.hint_timer = 0.0
+        self.state = "playing"
 
-    def draw_hud(self):
-        text = self.hud_font.render(f"Deaths: {self.death_count}", True, (255, 255, 255))
-        self.screen.blit(text, (20, 20))
+    def apply_theme(self):
+        """Build the background and ambient effects for the level's current theme."""
+        theme = self.level.theme
+        self.background = Background(self.width, self.height, theme)
+        self.ambient = make_ambient(theme, self.width, self.height)
+
+    def finish_level(self):
+        self.complete_screen.set_results({
+            "time": self.level_time,
+            "deaths": self.death_count,
+            "damage_taken": self.damage_taken,
+            "objectives_done": self.objectives.completed_count,
+            "objectives_total": self.objectives.total,
+        })
+        self.state = "level_complete"
+
+    # ------------------------------------------------------------ main loop
+    def run(self):
+        self.loading_screen()
+        self.clock.tick()  # discard the loading screen's long delay
+
+        while self.running:
+            dt = min(self.clock.tick(self.fps) / 1000, 0.05)
+            self.anim_time += dt
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    self.running = False
+            if not self.running:
+                break
+
+            if self.state == "menu":
+                self.run_menu(events)
+            elif self.state == "playing":
+                self.run_playing(events, dt)
+            elif self.state == "level_complete":
+                self.run_level_complete(events)
+
+            pygame.display.flip()
+
+        pygame.quit()
+
+    # ------------------------------------------------------------ menu
+    def run_menu(self, events):
+        action = self.menu.handle(events)
+        if action == "play":
+            self.start_level()
+            return
+        if action == "quit":
+            self.running = False
+            return
+        self.menu.draw(self.screen, self.menu_background, self.anim_time)
+
+    # ------------------------------------------------------------ level complete
+    def run_level_complete(self, events):
+        action = self.complete_screen.handle(events)
+        if action == "again":
+            self.start_level()
+            return
+        if action == "menu":
+            self.state = "menu"
+            return
+        self.complete_screen.draw(self.screen)
+
+    # ------------------------------------------------------------ playing
+    def run_playing(self, events, dt):
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.state = "menu"
+                return
+            if self.THEME_PREVIEW and event.type == pygame.KEYDOWN and event.key == pygame.K_t:
+                index = THEME_NAMES.index(self.level.theme_name)
+                name = THEME_NAMES[(index + 1) % len(THEME_NAMES)]
+                self.level.set_theme(name)
+                self.apply_theme()
+                self.hint_text = f"Theme: {name}"
+                self.hint_timer = 1.5
+
+        self.update_playing(dt)
+        if self.state == "playing":
+            self.draw_playing()
+
+    def water_surface_y(self):
+        """Top of the water the player is touching (for splashes)."""
+        for w in self.level.water:
+            if self.player.rect.colliderect(w):
+                return w.top
+        return self.player.rect.centery
+
+    def update_playing(self, dt):
+        self.level_time += dt
+        if self.hint_timer > 0:
+            self.hint_timer -= dt
+        self.particles.update(dt)
+        if self.ambient:
+            self.ambient.update(dt)
 
         p = self.player
+        dead = False
+        reason = None
 
-        # health bar
-        bar_w, bar_h = 200, 16
-        pygame.draw.rect(self.screen, (60, 20, 20), (20, 55, bar_w, bar_h))
-        fill = int(bar_w * p.health / p.max_health)
-        pygame.draw.rect(self.screen, (220, 60, 60), (20, 55, fill, bar_h))
-        pygame.draw.rect(self.screen, (255, 255, 255), (20, 55, bar_w, bar_h), 2)
+        if p.respawn_lock <= 0:
+            was_in_water = p.in_water
+            # water / breath first, so move() knows if we're swimming
+            if p.update_water(self.level.water, dt):
+                dead = True
+                reason = "drowned"
+            if p.in_water != was_in_water and abs(p.velocity_y) > 100:
+                self.particles.emit(
+                    p.rect.centerx, self.water_surface_y(),
+                    [(190, 225, 255), (120, 180, 245), (255, 255, 255)],
+                    count=14, speed=170, up=160, gravity=700,
+                )
+
+        was_on_ground = p.on_ground
+        prev_vy = p.velocity_y
+        p.move(self.level.platforms, dt, self.level.data["world_width"])
+
+        # landing dust
+        if p.on_ground and not was_on_ground and prev_vy > 300:
+            self.particles.emit(
+                p.rect.centerx, p.rect.bottom,
+                [(214, 190, 150), (180, 150, 110), (240, 225, 195)],
+                count=8, speed=110, up=30, gravity=300, size=(3, 6),
+            )
+
+        if self.DEBUG:
+            print(
+                f"x={p.rect.x} y={p.rect.y} vy={p.velocity_y:.0f} "
+                f"breath={p.breath:.1f} water={p.in_water} deaths={self.death_count}"
+            )
+
+        if not dead and p.respawn_lock <= 0:
+            if p.rect.top > self.level.data["world_height"]:
+                dead = True
+                reason = "fell into the abyss"
+            else:
+                for hazard in self.level.hazards:
+                    if p.rect.colliderect(hazard):
+                        dead = True
+                        reason = f"touched lava {hazard}"
+                        break
+
+        # enemies: patrol, then contact (stomp from above, otherwise take damage)
+        for enemy in list(self.level.enemies):
+            enemy.update(dt)
+            if dead or p.respawn_lock > 0:
+                continue
+            if not p.rect.colliderect(enemy.rect):
+                continue
+            stomping = p.velocity_y > 0 and p.rect.bottom - enemy.rect.top <= 30
+            if stomping:
+                if enemy.take_damage(1):
+                    self.level.enemies.remove(enemy)
+                    self.objectives.on_event("enemy_defeated")
+                    self.particles.emit(
+                        enemy.rect.centerx, enemy.rect.centery,
+                        [(150, 60, 180), (190, 110, 215), (255, 255, 255)],
+                        count=18, speed=220, up=120, size=(3, 7),
+                    )
+                p.bounce()
+            elif p.take_damage(enemy.damage):
+                self.damage_taken += enemy.damage
+                self.particles.emit(
+                    p.rect.centerx, p.rect.centery,
+                    [(255, 90, 90), (255, 200, 200)],
+                    count=10, speed=180, up=80,
+                )
+                if p.health <= 0:
+                    dead = True
+                    reason = "killed by an enemy"
+
+        if dead:
+            if self.DEBUG:
+                print(f"DIED: {reason} at x={p.rect.x} y={p.rect.y}")
+            self.particles.emit(
+                p.rect.centerx, p.rect.centery,
+                [(255, 255, 255), (255, 120, 80), (255, 210, 90)],
+                count=26, speed=260, up=140, size=(3, 7),
+            )
+            self.death_count += 1
+            start_x, start_y = self.level.data["player_start"]
+            p.respawn(start_x, start_y)
+
+        # exit door: only opens once the required objectives are done
+        if not dead and self.level.exit_rect and p.rect.colliderect(self.level.exit_rect):
+            if self.objectives.required_done:
+                self.finish_level()
+                return
+            self.hint_text = "The exit is locked - finish the objectives first"
+            self.hint_timer = 2.0
+
+        self.camera.update(
+            p,
+            self.level.data["world_width"],
+            self.level.data["world_height"],
+        )
+
+    def draw_playing(self):
+        t = self.anim_time
+        self.background.draw(self.screen, self.camera.offset_x, self.camera.offset_y, t)
+        self.level.draw(self.screen, self.camera, t)
+        self.level.draw_exit(self.screen, self.camera, self.objectives.required_done, t)
+        for enemy in self.level.enemies:
+            enemy.draw(self.screen, self.camera)
+        self.player.draw(self.screen, self.camera)
+        self.particles.draw(self.screen, self.camera)
+        self.level.draw_water(self.screen, self.camera, t)
+        if self.ambient:
+            self.ambient.draw(self.screen)
+        self.draw_hud()
+
+    # ------------------------------------------------------------ HUD
+    def draw_text(self, font, text, colour, pos):
+        shadow = font.render(text, True, (20, 20, 40))
+        self.screen.blit(shadow, (pos[0] + 1, pos[1] + 1))
+        self.screen.blit(font.render(text, True, colour), pos)
+
+    def draw_bar(self, x, y, w, h, frac, colour, label):
+        frac = max(0.0, min(1.0, frac))
+        pygame.draw.rect(self.screen, (25, 25, 45), (x, y, w, h), border_radius=h // 2)
+        if frac > 0:
+            pygame.draw.rect(self.screen, colour, (x, y, max(h, int(w * frac)), h), border_radius=h // 2)
+        pygame.draw.rect(self.screen, (255, 255, 255), (x, y, w, h), 2, border_radius=h // 2)
+        self.draw_text(self.small_font, label, (255, 255, 255), (x + w + 10, y - 3))
+
+    def draw_hud(self):
+        p = self.player
+        self.screen.blit(self.hud_panel, (10, 10))
+        self.draw_text(self.hud_font, f"Deaths: {self.death_count}", (255, 255, 255), (22, 18))
+        self.draw_bar(22, 52, 180, 16, p.health / p.max_health, (220, 60, 60), "HP")
 
         # breath bar: only shown once the player has started running out of air
         if p.breath < p.max_breath:
-            bar_w, bar_h = 200, 14
-            x, y = 20, 80
-            pygame.draw.rect(self.screen, (30, 30, 50), (x, y, bar_w, bar_h))
-            fill = int(bar_w * p.breath / p.max_breath)
             colour = (90, 200, 255) if p.breath > 1.5 else (255, 120, 80)
-            pygame.draw.rect(self.screen, colour, (x, y, fill, bar_h))
-            pygame.draw.rect(self.screen, (255, 255, 255), (x, y, bar_w, bar_h), 2)
+            self.draw_bar(22, 78, 180, 14, p.breath / p.max_breath, colour, "AIR")
 
-    def run(self):
-        self.loading_screen()
-        print("Loading game...")
-        self.load_game()
-        print("Game loaded. Starting main loop.")
+        # objectives, top right
+        labels = []
+        for obj in self.objectives.items:
+            mark = "[x]" if obj.complete else "[ ]"
+            text = f"{mark} {obj.text}"
+            if obj.target > 1:
+                text += f" {obj.progress}/{obj.target}"
+            if not obj.required:
+                text += " (bonus)"
+            colour = (120, 255, 140) if obj.complete else (255, 255, 255)
+            labels.append(self.small_font.render(text, True, colour))
+        if labels:
+            w = max(l.get_width() for l in labels) + 24
+            h = len(labels) * 26 + 14
+            panel = pygame.Surface((w, h), pygame.SRCALPHA)
+            pygame.draw.rect(panel, (20, 20, 40, 120), panel.get_rect(), border_radius=12)
+            self.screen.blit(panel, (self.width - w - 10, 10))
+            y = 18
+            for label in labels:
+                self.screen.blit(label, (self.width - 22 - label.get_width(), y))
+                y += 26
 
-        # discard the long delay caused by the loading screen's sleep
-        self.clock.tick()
-
-        running = True
-        while running:
-            dt = self.clock.tick(self.fps) / 1000
-            dt = min(dt, 0.05)
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-            if not running:
-                break
-
-            dead = False
-            reason = None
-
-            if self.player.respawn_lock <= 0:
-                # water / breath first, so move() knows if we're swimming
-                if self.player.update_water(self.level.water, dt):
-                    dead = True
-                    reason = "drowned"
-
-            self.player.move(self.level.platforms, dt, self.level.data["world_width"])
-
-            if self.DEBUG:
-                p = self.player
-                print(
-                    f"x={p.rect.x} y={p.rect.y} vy={p.velocity_y:.0f} "
-                    f"breath={p.breath:.1f} water={p.in_water} deaths={self.death_count}"
-                )
-
-            if not dead and self.player.respawn_lock <= 0:
-                if self.player.rect.top > self.level.data["world_height"]:
-                    dead = True
-                    reason = "fell into the abyss"
-                else:
-                    for hazard in self.level.hazards:
-                        if self.player.rect.colliderect(hazard):
-                            dead = True
-                            reason = f"touched lava {hazard}"
-                            break
-
-            # enemies: patrol, then contact (stomp from above, otherwise take damage)
-            for enemy in list(self.level.enemies):
-                enemy.update(dt)
-                if dead or self.player.respawn_lock > 0:
-                    continue
-                if not self.player.rect.colliderect(enemy.rect):
-                    continue
-                stomping = (
-                    self.player.velocity_y > 0
-                    and self.player.rect.bottom - enemy.rect.top <= 30
-                )
-                if stomping:
-                    if enemy.take_damage(1):
-                        self.level.enemies.remove(enemy)
-                    self.player.bounce()
-                elif self.player.take_damage(enemy.damage):
-                    if self.player.health <= 0:
-                        dead = True
-                        reason = "killed by an enemy"
-
-            if dead:
-                if self.DEBUG:
-                    print(f"DIED: {reason} at x={self.player.rect.x} y={self.player.rect.y}")
-                self.death_count += 1
-                start_x, start_y = self.level.data["player_start"]
-                self.player.respawn(start_x, start_y)
-
-            self.camera.update(
-                self.player,
-                self.level.data["world_width"],
-                self.level.data["world_height"],
-            )
-
-            self.screen.fill(self.background_color)
-            self.level.draw(self.screen, self.camera)
-            for enemy in self.level.enemies:
-                enemy.draw(self.screen, self.camera)
-            self.player.draw(self.screen, self.camera)
-            self.level.draw_water(self.screen, self.camera)
-            self.draw_hud()
-            pygame.display.flip()
-            self.frame_count += 1
-            if self.frame_count % 30 == 0:
-                pygame.display.set_caption(
-                    f"Bean With A Dream - {self.clock.get_fps():.0f} fps"
-                )
-        pygame.quit()
+        # short message, e.g. when touching a locked exit
+        if self.hint_timer > 0:
+            width = self.hud_font.size(self.hint_text)[0]
+            self.draw_text(self.hud_font, self.hint_text, (255, 230, 120), (self.width // 2 - width // 2, 120))
