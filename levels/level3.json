@@ -1,7 +1,7 @@
 {
     "name": "Level 3 - Frostbite Gauntlet",
     "theme": "snow",
-    "par_time": 130,
+    "par_time": 135,
     "checkpoints": [[860, 500], [2300, 500], [3250, 500], [3660, 500]],
     "player_start": [150, 500],
     "world_width": 5000,
@@ -9,7 +9,8 @@
     "exit": [4900, 380, 60, 120],
     "objectives": [
         {"id": "defeat_five", "type": "enemy_defeated", "target": 5, "text": "Defeat 5 enemies", "required": true},
-        {"id": "defeat_all", "type": "enemy_defeated", "target": 7, "text": "Defeat every enemy", "required": false}
+        {"id": "defeat_all", "type": "enemy_defeated", "target": 7, "text": "Defeat every enemy", "required": false},
+        {"id": "coins", "type": "coin_collected", "target": 12, "text": "Collect 12 coins", "required": false}
     ],
     "tiles": [
         {"rect": [0, 500, 900, 150], "type": "ground"},
@@ -23,13 +24,34 @@
         {"rect": [3850, 500, 1150, 150], "type": "ground"},
         {"rect": [4000, 480, 80, 20], "type": "lava"}
     ],
+    "coins": [
+        {"x": 260, "y": 450, "count": 3, "dx": 50},
+        {"x": 1850, "y": 565, "count": 6, "dx": 50},
+        [1920, 395],
+        [2120, 395],
+        [1800, 250],
+        [1880, 220],
+        [1960, 220],
+        [2040, 250],
+        {"x": 4400, "y": 450, "count": 4, "dx": 50}
+    ],
+    "pads": [
+        {"type": "speed", "x": 1090, "y": 500},
+        {"type": "spring", "x": 1705, "y": 500},
+        {"type": "speed", "x": 3000, "y": 500},
+        {"type": "jump", "x": 3900, "y": 500}
+    ],
+    "lucky_blocks": [
+        [2450, 300],
+        [4450, 300]
+    ],
     "enemies": [
-        {"x": 500, "y": 500, "patrol": [450, 800], "type": "walker"},
-        {"x": 1150, "y": 500, "patrol": [1130, 1400], "type": "walker"},
-        {"x": 1500, "y": 500, "patrol": [1450, 1720], "type": "walker"},
-        {"x": 2400, "y": 500, "patrol": [2360, 2570], "type": "walker"},
-        {"x": 2700, "y": 500, "patrol": [2640, 2900], "type": "walker"},
-        {"x": 3450, "y": 500, "patrol": [3380, 3600], "type": "walker"},
-        {"x": 4300, "y": 500, "patrol": [4200, 4650], "type": "walker"}
+        {"type": "walker", "x": 500, "y": 500, "patrol": [450, 800]},
+        {"type": "walker", "x": 1150, "y": 500, "patrol": [1130, 1400]},
+        {"type": "hopper", "x": 1500, "y": 500, "patrol": [1450, 1640]},
+        {"type": "walker", "x": 2400, "y": 500, "patrol": [2360, 2570]},
+        {"type": "flyer", "x": 2700, "y": 375, "patrol": [2640, 2900]},
+        {"type": "hopper", "x": 3450, "y": 500, "patrol": [3380, 3600]},
+        {"type": "walker", "x": 4300, "y": 500, "patrol": [4200, 4650]}
     ]
 }

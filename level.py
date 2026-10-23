@@ -2,7 +2,8 @@ import json
 import math
 import pygame
 from tile import Tile
-from enemy import Enemy
+from enemy import create_enemy
+from items import Coin, Pad, LuckyBlock, MovingPlatform
 from themes import THEMES, DEFAULT_THEME
 import visuals
 
@@ -36,10 +37,31 @@ class Level:
         self.hazards = [t.rect for t in self.tiles if t.deadly]
         self.water = [t.rect for t in self.tiles if t.water]
 
-        # enemies: {"x": 900, "y": 550, "patrol": [850, 1350], "type": "walker"}
-        self.enemies = []
-        for e in self.data.get("enemies", []):
-            self.enemies.append(Enemy(e["x"], e["y"], e.get("patrol"), colour=self.theme["enemy"]))
+        # enemies: {"type": "walker" | "flyer" | "hopper", "x": 900, "y": 550, "patrol": [850, 1350]}
+        self.enemies = [create_enemy(e, self.theme) for e in self.data.get("enemies", [])]
+
+        # coins: [x, y]  or a row  {"x": 300, "y": 450, "count": 4, "dx": 45}
+        self.coins = []
+        for entry in self.data.get("coins", []):
+            if isinstance(entry, dict):
+                for i in range(entry.get("count", 1)):
+                    self.coins.append(Coin(entry["x"] + i * entry.get("dx", 0),
+                                           entry["y"] + i * entry.get("dy", 0)))
+            else:
+                self.coins.append(Coin(*entry))
+        self.coin_total = len(self.coins)
+
+        # pads: {"type": "spring" | "speed" | "jump", "x": centre, "y": ground height}
+        self.pads = [Pad(p["type"], p["x"], p["y"]) for p in self.data.get("pads", [])]
+
+        # lucky blocks: [x, y] (top-left corner), hit them from below
+        self.lucky_blocks = [LuckyBlock(*b) for b in self.data.get("lucky_blocks", [])]
+
+        # moving platforms: {"rect": [x, y, w, h], "from": [x, y], "to": [x, y], "speed": 80}
+        self.movers = [
+            MovingPlatform(m["rect"], m["from"], m["to"], m.get("speed", 80))
+            for m in self.data.get("movers", [])
+        ]
 
         # checkpoints: [[x_centre, y_feet], ...] in the order you reach them
         self.checkpoints = [tuple(c) for c in self.data.get("checkpoints", [])]
@@ -64,8 +86,32 @@ class Level:
         self.theme = THEMES[self.theme_name]
         self._build_surfaces()
         for enemy in self.enemies:
-            enemy.set_colour(self.theme["enemy"])
+            enemy.set_colour(self.theme[enemy.THEME_KEY])
 
+    # ------------------------------------------------------------ updating
+    def solids(self):
+        """Every rect the player can stand on or bump into, this frame."""
+        return (
+            self.platforms
+            + [m.rect for m in self.movers]
+            + [b.rect for b in self.lucky_blocks]
+        )
+
+    def update_movers(self, dt, player):
+        """Move the platforms, carrying the player along if they're standing on one."""
+        for mover in self.movers:
+            riding = player.respawn_lock <= 0 and player.is_standing_on(mover.rect)
+            mover.update(dt)
+            if riding:
+                player.shift(*mover.delta)
+
+    def update_items(self, dt):
+        for pad in self.pads:
+            pad.update(dt)
+        for block in self.lucky_blocks:
+            block.update(dt)
+
+    # ------------------------------------------------------------ drawing
     def draw_checkpoints(self, screen, camera, active, t=0.0):
         """active is the (x, y) of the checkpoint the player last reached, or None."""
         for cx, cy in self.checkpoints:
@@ -76,6 +122,26 @@ class Level:
     def draw_exit(self, screen, camera, unlocked, t=0.0):
         if self.exit_rect:
             visuals.draw_exit(screen, camera.apply(self.exit_rect), unlocked, t)
+
+    def draw_items(self, screen, camera, t=0.0):
+        """Moving platforms, lucky blocks, pads and coins."""
+        screen_rect = screen.get_rect().inflate(120, 120)
+        for mover in self.movers:
+            r = camera.apply(mover.rect)
+            if r.colliderect(screen_rect):
+                screen.blit(mover.surface, r.topleft)
+        for block in self.lucky_blocks:
+            r = camera.apply(block.rect)
+            if r.colliderect(screen_rect):
+                visuals.draw_lucky_block(screen, r, block.used, block.bump, t)
+        for pad in self.pads:
+            r = camera.apply(pad.rect)
+            if r.colliderect(screen_rect):
+                visuals.draw_pad(screen, r, pad.kind, pad.ready, pad.squash, t)
+        for coin in self.coins:
+            sx, sy = coin.x - camera.offset_x, coin.y - camera.offset_y
+            if -40 < sx < screen.get_width() + 40:
+                visuals.draw_coin(screen, sx, sy, t, coin.phase)
 
     def draw(self, screen, camera, t=0.0):
         """Draw everything except water (water is drawn after the player)."""

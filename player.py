@@ -7,12 +7,12 @@ class Player:
     SPAWN_Y_IS_FEET = True
 
     # draw the red collision box (handy when debugging collisions)
-    SHOW_HITBOX = True
+    SHOW_HITBOX = False
 
     # Shrink the hitbox inside the visible bean, in pixels.
     # X is taken off BOTH the left and the right; TOP is taken off the head.
     # The feet stay put so the bean still stands exactly on the ground.
-    HITBOX_SHRINK_X = 20
+    HITBOX_SHRINK_X = 5
     HITBOX_SHRINK_TOP = 5
 
     def __init__(self, x, y):
@@ -43,6 +43,14 @@ class Player:
         self.water_gravity_mult = 0.4
         self.water_max_fall = 200
         self.swim_speed = 220
+
+        # buffs: name -> seconds left (picked up from buff pads and lucky blocks)
+        self.buffs = {}
+        self.speed_buff_mult = 1.5
+        self.jump_buff_mult = 1.2
+
+        self.head_hit = None   # the solid rect we bumped our head on this frame (lucky blocks)
+        self.moving_x = 0
 
         self.image = pygame.image.load("assets/bean.png").convert_alpha()
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
@@ -85,6 +93,29 @@ class Player:
         self.on_ground = False
         self.invincible_timer = max(self.invincible_timer, 0.3)
 
+    def add_buff(self, name, duration):
+        self.buffs[name] = max(self.buffs.get(name, 0.0), duration)
+
+    def launch(self, strength):
+        """Fired upwards by a spring."""
+        self.velocity_y = -strength
+        self.on_ground = False
+
+    def shift(self, dx, dy):
+        """Move the player by a whole number of pixels (used when riding a moving platform)."""
+        self.pos_x += dx
+        self.pos_y += dy
+        self.rect.x = round(self.pos_x)
+        self.rect.y = round(self.pos_y)
+
+    def is_standing_on(self, rect):
+        return (
+            self.on_ground
+            and abs(self.rect.bottom - rect.top) <= 1
+            and self.rect.right > rect.left
+            and self.rect.left < rect.right
+        )
+
     def update_water(self, water_rects, dt):
         """Work out if we're in water, drain/refill breath. Returns True if drowned."""
         head = pygame.Rect(self.rect.x, self.rect.y, self.rect.width, 20)
@@ -98,6 +129,8 @@ class Player:
         return self.breath <= 0
 
     def move(self, platforms, dt, world_width=None):
+        self.head_hit = None
+
         # freeze everything first so gravity can't build up while locked
         if self.respawn_lock > 0:
             self.respawn_lock -= dt
@@ -107,6 +140,10 @@ class Player:
             self.invincible_timer -= dt
         if self.flash_timer > 0:
             self.flash_timer -= dt
+        for name in list(self.buffs):
+            self.buffs[name] -= dt
+            if self.buffs[name] <= 0:
+                del self.buffs[name]
 
         keys = pygame.key.get_pressed()
         movement_x = 0
@@ -114,10 +151,13 @@ class Player:
             movement_x -= 1
         if keys[pygame.K_d]:
             movement_x += 1
+        self.moving_x = movement_x
         if movement_x != 0:
             self.facing = 1 if movement_x > 0 else -1
 
         speed = self.speed * (self.water_speed_mult if self.in_water else 1.0)
+        if "speed" in self.buffs:
+            speed *= self.speed_buff_mult
 
         # ---- horizontal movement ----
         self.pos_x += movement_x * speed * dt
@@ -128,6 +168,10 @@ class Player:
             if movement_x > 0:
                 self.rect.right = platform.left
             elif movement_x < 0:
+                self.rect.left = platform.right
+            elif self.rect.centerx < platform.centerx:  # pushed into us by a moving platform
+                self.rect.right = platform.left
+            else:
                 self.rect.left = platform.right
             self.pos_x = float(self.rect.x)
 
@@ -142,7 +186,8 @@ class Player:
         # ---- jump / swim (uses on_ground from the previous frame) ----
         if keys[pygame.K_SPACE]:
             if self.on_ground:
-                self.velocity_y = -self.jump_strength
+                jump = self.jump_strength * (self.jump_buff_mult if "jump" in self.buffs else 1.0)
+                self.velocity_y = -jump
                 self.on_ground = False
             elif self.in_water:
                 self.velocity_y = -self.swim_speed
@@ -164,6 +209,7 @@ class Player:
                 self.on_ground = True
             else:
                 self.rect.top = platform.bottom
+                self.head_hit = platform
             self.pos_y = float(self.rect.y)
             self.velocity_y = 0.0
             break
@@ -213,3 +259,4 @@ class Player:
         self.health = self.max_health
         self.invincible_timer = 0.0
         self.flash_timer = 0.0
+        self.buffs = {}

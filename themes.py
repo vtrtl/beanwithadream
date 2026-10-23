@@ -18,6 +18,8 @@ FOREST = {
     "water": ((70, 150, 235), (20, 60, 160)),           # shallow colour, deep colour
     "water_line": (190, 225, 255),
     "enemy": (150, 60, 180),
+    "flyer": (232, 172, 62),
+    "hopper": (222, 92, 92),
     "stars": False,                                     # stars and a moon behind the hills
     "ambient": None,                                    # "snow" for falling snow
 }
@@ -37,6 +39,8 @@ NIGHT = {
     "water": ((40, 92, 172), (10, 28, 100)),
     "water_line": (140, 182, 240),
     "enemy": (90, 170, 112),
+    "flyer": (232, 232, 130),
+    "hopper": (236, 122, 122),
     "stars": True,
 }
 
@@ -55,6 +59,8 @@ DESERT = {
     "water": ((72, 192, 202), (20, 112, 142)),
     "water_line": (204, 246, 246),
     "enemy": (206, 92, 52),
+    "flyer": (126, 92, 200),
+    "hopper": (84, 152, 92),
 }
 
 SNOW = {
@@ -72,6 +78,8 @@ SNOW = {
     "water": ((152, 212, 246), (60, 122, 192)),
     "water_line": (236, 250, 255),
     "enemy": (110, 170, 224),
+    "flyer": (240, 150, 176),
+    "hopper": (242, 134, 64),
     "ambient": "snow",
 }
 

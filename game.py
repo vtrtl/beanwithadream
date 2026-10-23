@@ -1,3 +1,4 @@
+import random
 import pygame
 import time
 from player import Player
@@ -7,6 +8,7 @@ from objective import ObjectiveTracker
 from performance import LevelPerformance, PerformanceHistory
 from menu import MainMenu
 from level_complete import LevelCompleteScreen
+import visuals
 from visuals import Background, ParticleSystem, make_ambient
 from themes import THEME_NAMES
 
@@ -15,6 +17,13 @@ class Game:
     DEBUG = False
     LEVELS = ["levels/level1.json", "levels/level2.json", "levels/level3.json"]
     THEME_PREVIEW = True  # press T while playing to cycle through the themes
+
+    # gameplay numbers (the adaptive difficulty system will tune these later)
+    BUFF_DURATION = 6.0          # seconds a speed / jump buff lasts
+    SPRING_STRENGTH = 950        # launch speed from a spring (a normal jump is 600)
+    LUCKY_WEIGHTS = {"coins": 40, "speed": 25, "jump": 20, "heal": 15}
+    BUFF_NAMES = {"speed": "Speed boost", "jump": "Super jump"}
+    BUFF_COLOURS = {"speed": (255, 170, 60), "jump": (100, 230, 140)}
 
     def __init__(self):
         pygame.init()
@@ -34,7 +43,7 @@ class Game:
         self.anim_time = 0.0  # drives all the animations
 
         # translucent panel behind the top-left HUD
-        self.hud_panel = pygame.Surface((250, 100), pygame.SRCALPHA)
+        self.hud_panel = pygame.Surface((300, 100), pygame.SRCALPHA)
         pygame.draw.rect(self.hud_panel, (20, 20, 40, 120), self.hud_panel.get_rect(), border_radius=12)
 
         # states: "menu", "playing", "level_complete"
@@ -79,6 +88,7 @@ class Game:
             self.level.data.get("name", self.LEVELS[self.level_index]),
             self.level.data.get("par_time"),
         )
+        self.perf.coins_total = self.level.coin_total
         self.checkpoint = None
         self.hint_text = self.level.data.get("name", "")  # level title banner
         self.hint_timer = 3.0
@@ -175,6 +185,80 @@ class Game:
                 return w.top
         return self.player.rect.centery
 
+    def show_hint(self, text, seconds=1.5):
+        self.hint_text = text
+        self.hint_timer = seconds
+
+    def lucky_reward(self, block):
+        """What a lucky block gives you: coins, a buff, or some health."""
+        p = self.player
+        kind = random.choices(list(self.LUCKY_WEIGHTS), weights=list(self.LUCKY_WEIGHTS.values()))[0]
+        if kind == "heal" and p.health >= p.max_health:
+            kind = "coins"  # no point healing someone at full health
+
+        gold = [(255, 215, 80), (255, 245, 170), (255, 255, 255)]
+        colours = gold
+        if kind == "coins":
+            for _ in range(3):
+                self.perf.record_coin()
+                self.objectives.on_event("coin_collected")
+            self.perf.coins_total += 3  # bonus coins count as coins that existed
+            self.show_hint("Lucky! +3 coins")
+        elif kind == "heal":
+            p.health = min(p.max_health, p.health + 30)
+            self.show_hint("Lucky! +30 health")
+            colours = [(255, 110, 110), (255, 200, 200), (255, 255, 255)]
+        else:
+            p.add_buff(kind, self.BUFF_DURATION)
+            self.perf.record_buff(kind)
+            self.show_hint(f"Lucky! {self.BUFF_NAMES[kind]}")
+            colours = [self.BUFF_COLOURS[kind], (255, 255, 255)]
+        self.particles.emit(block.rect.centerx, block.rect.top, colours,
+                            count=16, speed=170, up=180, size=(3, 6))
+
+    def handle_items(self):
+        """Coins, pads and lucky blocks: everything the player touches or bumps into."""
+        p = self.player
+        level = self.level
+
+        remaining = []
+        for coin in level.coins:
+            if p.rect.colliderect(coin.rect):
+                self.perf.record_coin()
+                self.objectives.on_event("coin_collected")
+                self.particles.emit(
+                    coin.x, coin.y, [(255, 215, 80), (255, 245, 170), (255, 255, 255)],
+                    count=8, speed=120, up=60, gravity=300, life=(0.2, 0.5),
+                )
+            else:
+                remaining.append(coin)
+        level.coins = remaining
+
+        for pad in level.pads:
+            if not pad.ready or not p.rect.colliderect(pad.rect):
+                continue
+            if pad.kind == "spring":
+                if p.velocity_y < 0:  # only bounce when coming down or standing still
+                    continue
+                p.launch(self.SPRING_STRENGTH)
+                pad.trigger()
+                self.particles.emit(pad.rect.centerx, pad.rect.top, [(255, 255, 255), (230, 70, 70)],
+                                    count=10, speed=140, up=160)
+            else:
+                p.add_buff(pad.kind, self.BUFF_DURATION)
+                pad.trigger()
+                self.perf.record_buff(pad.kind)
+                self.show_hint(f"{self.BUFF_NAMES[pad.kind]}!")
+                self.particles.emit(pad.rect.centerx, pad.rect.top,
+                                    [self.BUFF_COLOURS[pad.kind], (255, 255, 255)],
+                                    count=14, speed=150, up=140)
+
+        if p.head_hit is not None:
+            for block in level.lucky_blocks:
+                if p.head_hit is block.rect and block.hit():
+                    self.perf.record_lucky_block()
+                    self.lucky_reward(block)
+
     def update_playing(self, dt):
         self.perf.tick(dt)
         if self.hint_timer > 0:
@@ -200,9 +284,22 @@ class Game:
                     count=14, speed=170, up=160, gravity=700,
                 )
 
+        self.level.update_items(dt)
+        self.level.update_movers(dt, p)  # moves the platforms and carries the player
+
         was_on_ground = p.on_ground
         prev_vy = p.velocity_y
-        p.move(self.level.platforms, dt, self.level.data["world_width"])
+        p.move(self.level.solids(), dt, self.level.data["world_width"])
+
+        if p.respawn_lock <= 0:
+            self.handle_items()
+            # dust trail while running with a speed buff
+            if "speed" in p.buffs and p.moving_x and p.on_ground:
+                self.particles.emit(
+                    p.rect.centerx - p.facing * 20, p.rect.bottom - 4,
+                    [(255, 170, 60), (255, 220, 120)],
+                    count=1, speed=40, up=20, gravity=100, life=(0.2, 0.4), size=(2, 4),
+                )
 
         # landing dust
         if p.on_ground and not was_on_ground and prev_vy > 300:
@@ -231,7 +328,7 @@ class Game:
 
         # enemies: patrol, then contact (stomp from above, otherwise take damage)
         for enemy in list(self.level.enemies):
-            enemy.update(dt)
+            enemy.update(dt, p.rect)
             if dead or p.respawn_lock > 0:
                 continue
             if not p.rect.colliderect(enemy.rect):
@@ -307,8 +404,11 @@ class Game:
         self.level.draw(self.screen, self.camera, t)
         self.level.draw_exit(self.screen, self.camera, self.objectives.required_done, t)
         self.level.draw_checkpoints(self.screen, self.camera, self.checkpoint, t)
+        self.level.draw_items(self.screen, self.camera, t)
         for enemy in self.level.enemies:
             enemy.draw(self.screen, self.camera)
+        if self.player.buffs and self.player.respawn_lock <= 0:
+            visuals.draw_buff_aura(self.screen, self.camera.apply(self.player.rect).center, self.player.buffs, t)
         self.player.draw(self.screen, self.camera)
         self.particles.draw(self.screen, self.camera)
         self.level.draw_water(self.screen, self.camera, t)
@@ -334,12 +434,21 @@ class Game:
         p = self.player
         self.screen.blit(self.hud_panel, (10, 10))
         self.draw_text(self.hud_font, f"Deaths: {self.perf.deaths}", (255, 255, 255), (22, 18))
+        self.draw_text(self.hud_font, f"Coins: {self.perf.coins}/{self.perf.coins_total}",
+                       (255, 225, 110), (165, 18))
         self.draw_bar(22, 52, 180, 16, p.health / p.max_health, (220, 60, 60), "HP")
 
         # breath bar: only shown once the player has started running out of air
         if p.breath < p.max_breath:
             colour = (90, 200, 255) if p.breath > 1.5 else (255, 120, 80)
             self.draw_bar(22, 78, 180, 14, p.breath / p.max_breath, colour, "AIR")
+
+        # active buffs, under the panel
+        y = 116
+        for name, left in p.buffs.items():
+            self.draw_bar(22, y, 150, 14, left / self.BUFF_DURATION, self.BUFF_COLOURS.get(name, (255, 255, 255)),
+                          f"{name.upper()} {left:.0f}s")
+            y += 24
 
         # objectives, top right
         labels = []

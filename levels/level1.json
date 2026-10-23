@@ -1,43 +1,62 @@
 {
     "name": "Level 1 - First Steps",
     "theme": "forest",
-    "par_time": 90,
-    "checkpoints": [[1850, 500], [2900, 500], [3600, 500]],
+    "par_time": 100,
+    "checkpoints": [[1990, 500], [2900, 500], [3600, 500]],
     "player_start": [150, 500],
     "world_width": 5000,
     "world_height": 650,
     "exit": [4900, 380, 60, 120],
     "objectives": [
-        {"id": "defeat_walkers", "type": "enemy_defeated", "target": 3,
-         "text": "Defeat the walkers", "required": true}
+        {"id": "defeat_enemies", "type": "enemy_defeated", "target": 3, "text": "Defeat 3 enemies", "required": true},
+        {"id": "coins", "type": "coin_collected", "target": 20, "text": "Collect 20 coins", "required": false}
     ],
     "tiles": [
-        {"rect": [0, 500, 1050, 150],    "type": "ground"},
-        {"rect": [600, 480, 90, 20],     "type": "lava"},
-
-        {"rect": [1190, 500, 450, 150],  "type": "ground"},
-
-        {"rect": [1790, 500, 250, 150],  "type": "ground"},
-        {"rect": [2120, 440, 150, 30],   "type": "ground"},
-        {"rect": [2340, 380, 150, 30],   "type": "ground"},
-        {"rect": [2560, 320, 150, 30],   "type": "ground"},
-        {"rect": [2780, 260, 260, 30],   "type": "ground"},
-
-        {"rect": [2850, 500, 200, 150],  "type": "ground"},
-
-        {"rect": [3050, 620, 500, 30],   "type": "ground"},
-        {"rect": [3050, 500, 500, 120],  "type": "water"},
-        {"rect": [3150, 440, 300, 60],   "type": "ground"},
-        {"rect": [3150, 420, 300, 20],   "type": "lava"},
-
-        {"rect": [3550, 500, 500, 150],  "type": "ground"},
-
-        {"rect": [4190, 500, 810, 150],  "type": "ground"},
-        {"rect": [4720, 480, 90, 20],    "type": "lava"}
+        {"rect": [0, 500, 1050, 150], "type": "ground"},
+        {"rect": [600, 480, 90, 20], "type": "lava"},
+        {"rect": [1190, 500, 450, 150], "type": "ground"},
+        {"rect": [1790, 500, 250, 150], "type": "ground"},
+        {"rect": [2120, 440, 150, 30], "type": "ground"},
+        {"rect": [2340, 380, 150, 30], "type": "ground"},
+        {"rect": [2560, 320, 150, 30], "type": "ground"},
+        {"rect": [2780, 260, 260, 30], "type": "ground"},
+        {"rect": [2850, 500, 200, 150], "type": "ground"},
+        {"rect": [3050, 620, 500, 30], "type": "ground"},
+        {"rect": [3050, 500, 500, 120], "type": "water"},
+        {"rect": [3150, 440, 300, 60], "type": "ground"},
+        {"rect": [3150, 420, 300, 20], "type": "lava"},
+        {"rect": [3550, 500, 500, 150], "type": "ground"},
+        {"rect": [4190, 500, 810, 150], "type": "ground"},
+        {"rect": [4720, 480, 90, 20], "type": "lava"},
+        {"rect": [1900, 260, 200, 30], "type": "ground"}
+    ],
+    "coins": [
+        {"x": 260, "y": 450, "count": 4, "dx": 45},
+        [585, 410],
+        [625, 380],
+        [665, 380],
+        [705, 410],
+        {"x": 1300, "y": 450, "count": 4, "dx": 60},
+        {"x": 1950, "y": 210, "count": 3, "dx": 50},
+        [2195, 395],
+        [2415, 335],
+        [2635, 275],
+        [2910, 215],
+        {"x": 3190, "y": 565, "count": 7, "dx": 40},
+        {"x": 4330, "y": 450, "count": 3, "dx": 50}
+    ],
+    "pads": [
+        {"type": "speed", "x": 1225, "y": 500},
+        {"type": "spring", "x": 1830, "y": 500}
+    ],
+    "lucky_blocks": [
+        [350, 300],
+        [1480, 300]
     ],
     "enemies": [
         {"x": 1400, "y": 500, "patrol": [1260, 1600], "type": "walker"},
         {"x": 3750, "y": 500, "patrol": [3700, 4030], "type": "walker"},
-        {"x": 4400, "y": 500, "patrol": [4300, 4650], "type": "walker"}
+        {"x": 4400, "y": 500, "patrol": [4300, 4650], "type": "walker"},
+        {"type": "flyer", "x": 4060, "y": 400, "patrol": [4050, 4250]}
     ]
 }

@@ -51,13 +51,14 @@ class LevelCompleteScreen:
             f"Deaths: {r.get('deaths', 0)}",
             f"Damage taken: {r.get('damage_taken', 0)}",
             f"Enemies defeated: {r.get('total_defeats', 0)}",
+            f"Coins: {r.get('coins', 0)} / {r.get('coins_total', 0)}",
             f"Objectives: {r.get('objectives_done', 0)} / {r.get('objectives_total', 0)}",
         ]
-        y = 190
+        y = 175
         for line in lines:
             text = self.font.render(line, True, (220, 255, 230))
             screen.blit(text, text.get_rect(center=(self.width // 2, y)))
-            y += 42
+            y += 38
 
         if self.has_next:
             self.next_button.draw(screen)

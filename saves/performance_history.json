@@ -68,5 +68,414 @@
     "objectives_total": 2,
     "completed": true,
     "when": "2026-10-22 21:21:40"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 51.04,
+    "par_time": 90,
+    "time_ratio": 0.567,
+    "deaths": 2,
+    "death_causes": {
+      "lava": 1,
+      "drowned": 1
+    },
+    "damage_taken": 0,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 1,
+    "objectives_total": 1,
+    "completed": true,
+    "when": "2026-10-23 10:04:57"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 29.29,
+    "par_time": 90,
+    "time_ratio": 0.325,
+    "deaths": 2,
+    "death_causes": {
+      "lava": 1,
+      "abyss": 1
+    },
+    "damage_taken": 20,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 1,
+    "objectives_total": 1,
+    "completed": true,
+    "when": "2026-10-23 10:06:09"
+  },
+  {
+    "level": "Level 2 - Moonlit Ledges",
+    "time": 18.49,
+    "par_time": 110,
+    "time_ratio": 0.168,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 0,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 1,
+    "objectives_total": 1,
+    "completed": true,
+    "when": "2026-10-23 10:06:29"
+  },
+  {
+    "level": "Level 3 - Frostbite Gauntlet",
+    "time": 19.3,
+    "par_time": 130,
+    "time_ratio": 0.148,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 0,
+    "defeats": {
+      "stomp": 7
+    },
+    "total_defeats": 7,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "completed": true,
+    "when": "2026-10-23 10:06:49"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 46.4,
+    "par_time": 90,
+    "time_ratio": 0.516,
+    "deaths": 1,
+    "death_causes": {
+      "lava": 1
+    },
+    "damage_taken": 0,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 1,
+    "objectives_total": 1,
+    "completed": true,
+    "when": "2026-10-23 10:08:22"
+  },
+  {
+    "level": "Level 2 - Moonlit Ledges",
+    "time": 32.55,
+    "par_time": 110,
+    "time_ratio": 0.296,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 20,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 1,
+    "objectives_total": 1,
+    "completed": true,
+    "when": "2026-10-23 10:08:57"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 21.02,
+    "par_time": 90,
+    "time_ratio": 0.234,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 0,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 1,
+    "objectives_total": 1,
+    "completed": true,
+    "when": "2026-10-23 10:12:26"
+  },
+  {
+    "level": "Level 2 - Moonlit Ledges",
+    "time": 19.89,
+    "par_time": 110,
+    "time_ratio": 0.181,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 20,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 1,
+    "objectives_total": 1,
+    "completed": true,
+    "when": "2026-10-23 10:12:50"
+  },
+  {
+    "level": "Level 3 - Frostbite Gauntlet",
+    "time": 18.19,
+    "par_time": 130,
+    "time_ratio": 0.14,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 20,
+    "defeats": {
+      "stomp": 7
+    },
+    "total_defeats": 7,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "completed": true,
+    "when": "2026-10-23 10:13:08"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 24.17,
+    "par_time": 100,
+    "time_ratio": 0.242,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 40,
+    "defeats": {
+      "stomp": 4
+    },
+    "total_defeats": 4,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "coins": 35,
+    "coins_total": 35,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 1
+    },
+    "completed": true,
+    "when": "2026-10-23 10:41:16"
+  },
+  {
+    "level": "Level 2 - Moonlit Ledges",
+    "time": 57.27,
+    "par_time": 115,
+    "time_ratio": 0.498,
+    "deaths": 1,
+    "death_causes": {
+      "enemy": 1
+    },
+    "damage_taken": 160,
+    "defeats": {
+      "stomp": 4
+    },
+    "total_defeats": 4,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "coins": 28,
+    "coins_total": 28,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 2,
+      "jump": 2
+    },
+    "completed": true,
+    "when": "2026-10-23 10:42:15"
+  },
+  {
+    "level": "Level 3 - Frostbite Gauntlet",
+    "time": 28.27,
+    "par_time": 135,
+    "time_ratio": 0.209,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 85,
+    "defeats": {
+      "stomp": 7
+    },
+    "total_defeats": 7,
+    "objectives_done": 3,
+    "objectives_total": 3,
+    "coins": 19,
+    "coins_total": 19,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 2,
+      "jump": 1
+    },
+    "completed": true,
+    "when": "2026-10-23 10:42:44"
+  },
+  {
+    "level": "Level 3 - Frostbite Gauntlet",
+    "time": 32.87,
+    "par_time": 135,
+    "time_ratio": 0.244,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 45,
+    "defeats": {
+      "stomp": 7
+    },
+    "total_defeats": 7,
+    "objectives_done": 3,
+    "objectives_total": 3,
+    "coins": 25,
+    "coins_total": 25,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 2,
+      "jump": 1
+    },
+    "completed": true,
+    "when": "2026-10-23 10:43:26"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 37.46,
+    "par_time": 100,
+    "time_ratio": 0.375,
+    "deaths": 3,
+    "death_causes": {
+      "lava": 3
+    },
+    "damage_taken": 20,
+    "defeats": {
+      "stomp": 4
+    },
+    "total_defeats": 4,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "coins": 32,
+    "coins_total": 32,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 2
+    },
+    "completed": true,
+    "when": "2026-10-23 10:44:10"
+  },
+  {
+    "level": "Level 2 - Moonlit Ledges",
+    "time": 41.69,
+    "par_time": 115,
+    "time_ratio": 0.363,
+    "deaths": 2,
+    "death_causes": {
+      "lava": 2
+    },
+    "damage_taken": 40,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "coins": 24,
+    "coins_total": 25,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 2,
+      "jump": 1
+    },
+    "completed": true,
+    "when": "2026-10-23 10:44:54"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 100.28,
+    "par_time": 100,
+    "time_ratio": 1.003,
+    "deaths": 7,
+    "death_causes": {
+      "lava": 7
+    },
+    "damage_taken": 100,
+    "defeats": {
+      "stomp": 4
+    },
+    "total_defeats": 4,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "coins": 35,
+    "coins_total": 35,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 1
+    },
+    "completed": true,
+    "when": "2026-10-23 18:25:18"
+  },
+  {
+    "level": "Level 2 - Moonlit Ledges",
+    "time": 64.67,
+    "par_time": 115,
+    "time_ratio": 0.562,
+    "deaths": 2,
+    "death_causes": {
+      "lava": 2
+    },
+    "damage_taken": 85,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "coins": 31,
+    "coins_total": 31,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "jump": 1
+    },
+    "completed": true,
+    "when": "2026-10-23 18:26:24"
+  },
+  {
+    "level": "Level 3 - Frostbite Gauntlet",
+    "time": 50.6,
+    "par_time": 135,
+    "time_ratio": 0.375,
+    "deaths": 1,
+    "death_causes": {
+      "lava": 1
+    },
+    "damage_taken": 60,
+    "defeats": {
+      "stomp": 6
+    },
+    "total_defeats": 6,
+    "objectives_done": 2,
+    "objectives_total": 3,
+    "coins": 12,
+    "coins_total": 19,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 4,
+      "jump": 1
+    },
+    "completed": true,
+    "when": "2026-10-23 18:27:15"
+  },
+  {
+    "level": "Level 3 - Frostbite Gauntlet",
+    "time": 22.82,
+    "par_time": 135,
+    "time_ratio": 0.169,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 60,
+    "defeats": {
+      "stomp": 7
+    },
+    "total_defeats": 7,
+    "objectives_done": 3,
+    "objectives_total": 3,
+    "coins": 16,
+    "coins_total": 22,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 2,
+      "jump": 1
+    },
+    "completed": true,
+    "when": "2026-10-23 21:00:19"
   }
 ]

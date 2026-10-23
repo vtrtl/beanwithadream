@@ -24,6 +24,10 @@ class LevelPerformance:
         self.defeats = {}               # method -> count, e.g. {"stomp": 3}
         self.objectives_done = 0
         self.objectives_total = 0
+        self.coins = 0
+        self.coins_total = 0            # coins that existed (set when the level starts)
+        self.lucky_blocks = 0
+        self.buffs_used = {}            # e.g. {"speed": 2, "jump": 1}
         self.completed = False
 
     def tick(self, dt):
@@ -39,6 +43,15 @@ class LevelPerformance:
 
     def record_defeat(self, method="stomp"):
         self.defeats[method] = self.defeats.get(method, 0) + 1
+
+    def record_coin(self):
+        self.coins += 1
+
+    def record_lucky_block(self):
+        self.lucky_blocks += 1
+
+    def record_buff(self, name):
+        self.buffs_used[name] = self.buffs_used.get(name, 0) + 1
 
     def finish(self, objectives_done, objectives_total):
         self.objectives_done = objectives_done
@@ -69,6 +82,10 @@ class LevelPerformance:
             "total_defeats": self.total_defeats,
             "objectives_done": self.objectives_done,
             "objectives_total": self.objectives_total,
+            "coins": self.coins,
+            "coins_total": self.coins_total,
+            "lucky_blocks": self.lucky_blocks,
+            "buffs_used": dict(self.buffs_used),
             "completed": self.completed,
         }
 

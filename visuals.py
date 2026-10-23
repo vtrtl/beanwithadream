@@ -274,6 +274,159 @@ def make_enemy_surface(w, h, facing, colour=(150, 60, 180)):
     return surf
 
 
+# ---------------------------------------------------------------- items
+_FONTS = {}
+
+
+def _font(size):
+    if size not in _FONTS:
+        _FONTS[size] = pygame.font.Font(None, size)
+    return _FONTS[size]
+
+
+def draw_coin(screen, x, y, t, phase=0.0):
+    """A spinning, bobbing gold coin centred on (x, y) in screen coordinates."""
+    bob = 3 * math.sin(t * 3 + phase)
+    w = max(4, int(abs(math.cos(t * 4 + phase)) * 22))
+    rect = pygame.Rect(0, 0, w, 22)
+    rect.center = (int(x), int(y + bob))
+    pygame.draw.ellipse(screen, (170, 120, 20), rect.inflate(4, 4))
+    pygame.draw.ellipse(screen, (255, 205, 60), rect)
+    if w > 12:
+        pygame.draw.ellipse(screen, (255, 238, 150), rect.inflate(-w // 2, -10))
+
+
+def draw_pad(screen, r, kind, ready, squash, t):
+    """Springs and buff pads. r is the pad's rect in screen coordinates."""
+    if kind == "spring":
+        drop = int(10 * squash)  # the plate squashes down after a bounce
+        base = pygame.Rect(r.x + 8, r.bottom - 5, r.width - 16, 5)
+        plate = pygame.Rect(r.x, r.y + drop, r.width, 6)
+        pygame.draw.rect(screen, (90, 92, 105), base, border_radius=2)
+        points = [(r.centerx, base.y)]
+        for i in range(1, 5):
+            yy = base.y + (plate.bottom - base.y) * i / 4
+            points.append((r.centerx + (14 if i % 2 else -14), yy))
+        pygame.draw.lines(screen, (200, 200, 215), False, points, 3)
+        pygame.draw.rect(screen, (230, 70, 70), plate, border_radius=3)
+        pygame.draw.rect(screen, (120, 25, 25), plate, 2, border_radius=3)
+        return
+
+    colour = {"speed": (255, 150, 40), "jump": (90, 220, 130)}.get(kind, (200, 200, 200))
+    if not ready:
+        colour = (105, 108, 120)  # recharging
+    pygame.draw.rect(screen, colour, r, border_radius=4)
+    pygame.draw.rect(screen, _shade(colour, 0.55), r, 2, border_radius=4)
+    if ready:
+        wave = int(3 * math.sin(t * 5))
+        for i in (0, 1):
+            if kind == "speed":
+                cx = r.centerx - 14 + i * 24 + wave
+                pts = [(cx, r.y - 22), (cx + 10, r.y - 14), (cx, r.y - 6)]
+            else:
+                cy = r.y - 6 - i * 11 - wave
+                pts = [(r.centerx - 10, cy), (r.centerx, cy - 9), (r.centerx + 10, cy)]
+            pygame.draw.lines(screen, colour, False, pts, 3)
+
+
+def draw_lucky_block(screen, r, used, bump, t):
+    """A gold ? block. bump (0 to 1) makes it jump up when hit."""
+    r = r.move(0, -int(10 * bump))
+    if used:
+        fill, edge = (150, 130, 105), (80, 65, 50)
+    else:
+        pulse = 0.5 + 0.5 * math.sin(t * 4)
+        fill, edge = (240, int(185 + 25 * pulse), 50), (125, 80, 10)
+    pygame.draw.rect(screen, fill, r, border_radius=6)
+    pygame.draw.rect(screen, _shade(fill, 1.2), (r.x + 5, r.y + 4, r.width - 10, 5), border_radius=2)
+    pygame.draw.rect(screen, edge, r, 3, border_radius=6)
+    for cx, cy in ((r.x + 7, r.y + 7), (r.right - 7, r.y + 7), (r.x + 7, r.bottom - 7), (r.right - 7, r.bottom - 7)):
+        pygame.draw.circle(screen, edge, (cx, cy), 2)
+    if not used:
+        font = _font(46)
+        pos = font.render("?", True, (255, 255, 255)).get_rect(center=r.center)
+        screen.blit(font.render("?", True, (110, 70, 10)), pos.move(2, 2))
+        screen.blit(font.render("?", True, (255, 255, 255)), pos)
+
+
+def make_mover_surface(w, h):
+    """A riveted metal plate for moving platforms."""
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.rect(surf, (118, 126, 145), (0, 0, w, h), border_radius=6)
+    pygame.draw.rect(surf, (170, 178, 198), (3, 2, w - 6, 4), border_radius=2)
+    pygame.draw.rect(surf, (80, 86, 104), (3, h - 6, w - 6, 4), border_radius=2)
+    for x in range(14, w - 8, 26):
+        pygame.draw.circle(surf, (60, 64, 80), (x, h // 2), 3)
+    pygame.draw.rect(surf, (45, 50, 66), (0, 0, w, h), 2, border_radius=6)
+    return surf
+
+
+def draw_buff_aura(screen, centre, buffs, t):
+    """A pulsing glow around the player while a buff is active."""
+    colours = {"speed": (255, 170, 60), "jump": (100, 230, 140)}
+    for i, name in enumerate(buffs):
+        colour = colours.get(name, (255, 255, 255))
+        radius = int(58 + 4 * math.sin(t * 6 + i))
+        glow = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(glow, (*colour, 45), (radius, radius), radius)
+        pygame.draw.circle(glow, (*colour, 120), (radius, radius), radius, 3)
+        screen.blit(glow, (centre[0] - radius, centre[1] - radius))
+
+
+# ---------------------------------------------------------------- more enemies
+def make_flyer_surface(w, h, facing, frame, colour):
+    """A winged flyer. frame 0 has its wings up, frame 1 has them down."""
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    dark, wing = _shade(colour, 0.55), _shade(colour, 1.15)
+    if frame == 0:
+        left = [(w * 0.30, h * 0.50), (w * 0.00, h * 0.05), (w * 0.42, h * 0.30)]
+    else:
+        left = [(w * 0.30, h * 0.50), (w * 0.00, h * 0.70), (w * 0.42, h * 0.62)]
+    right = [(w - x, y) for x, y in left]
+    for pts in (left, right):
+        pts = [(int(x), int(y)) for x, y in pts]
+        pygame.draw.polygon(surf, wing, pts)
+        pygame.draw.polygon(surf, dark, pts, 2)
+    body = pygame.Rect(int(w * 0.22), int(h * 0.26), int(w * 0.56), int(h * 0.66))
+    pygame.draw.ellipse(surf, colour, body)
+    pygame.draw.ellipse(surf, dark, body, 3)
+    eye_y = int(h * 0.52)
+    for ex in (int(w * 0.40), int(w * 0.60)):
+        pygame.draw.circle(surf, (255, 255, 255), (ex, eye_y), 5)
+        pygame.draw.circle(surf, (30, 20, 40), (ex + facing * 2, eye_y + 1), 2)
+    pygame.draw.line(surf, dark, (int(w * 0.33), eye_y - 8), (int(w * 0.45), eye_y - 5), 2)
+    pygame.draw.line(surf, dark, (int(w * 0.67), eye_y - 8), (int(w * 0.55), eye_y - 5), 2)
+    return surf
+
+
+def make_hopper_surface(w, h, facing, colour, pose):
+    """A bouncy blob. pose is "idle", "crouch" (winding up) or "air" (stretched)."""
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    if pose == "crouch":
+        body = pygame.Rect(0, int(h * 0.38), w, int(h * 0.62))
+    elif pose == "air":
+        body = pygame.Rect(int(w * 0.10), int(h * 0.02), int(w * 0.80), int(h * 0.98))
+    else:
+        body = pygame.Rect(int(w * 0.04), int(h * 0.14), int(w * 0.92), int(h * 0.86))
+    radius = int(min(body.width, body.height) * 0.38)
+    pygame.draw.rect(surf, colour, body, border_radius=radius)
+    pygame.draw.rect(surf, _shade(colour, 0.6), body, 3, border_radius=radius)
+    pygame.draw.ellipse(surf, _shade(colour, 1.28),
+                        (body.x + int(body.width * 0.15), body.y + int(body.height * 0.1),
+                         int(body.width * 0.3), int(body.height * 0.14)))
+    eye_y = body.y + int(body.height * 0.40)
+    eye_r = max(4, int(body.width * 0.13))
+    for ex in (body.x + int(body.width * 0.32), body.x + int(body.width * 0.68)):
+        pygame.draw.circle(surf, (255, 255, 255), (ex, eye_y), eye_r)
+        pygame.draw.circle(surf, (30, 20, 40), (ex + facing * 3, eye_y + 1), max(2, eye_r // 2))
+    brow = _shade(colour, 0.35)
+    pygame.draw.line(surf, brow, (body.x + int(body.width * 0.18), eye_y - eye_r - 3),
+                     (body.x + int(body.width * 0.42), eye_y - eye_r + 2), 4)
+    pygame.draw.line(surf, brow, (body.x + int(body.width * 0.82), eye_y - eye_r - 3),
+                     (body.x + int(body.width * 0.58), eye_y - eye_r + 2), 4)
+    return surf
+
+
 # ---------------------------------------------------------------- ambient effects
 class SnowAmbient:
     """Gently falling snow, drawn over the whole screen."""
