@@ -1,5 +1,6 @@
 import json
 import math
+import random
 import pygame
 from tile import Tile
 from enemy import create_enemy
@@ -70,6 +71,8 @@ class Level:
         exit_data = self.data.get("exit")
         self.exit_rect = pygame.Rect(exit_data) if exit_data else None
 
+        self._build_props()
+
     def _build_surfaces(self):
         """Pre-render the textures once so drawing stays cheap."""
         for tile in self.tiles:
@@ -80,11 +83,52 @@ class Level:
             elif tile.water:
                 tile.surface = visuals.make_water_surface(r.width, r.height, self.theme)
 
+    def _prop_avoid_zones(self):
+        """Horizontal stretches to keep clear of decoration (pads, flags, the exit, the start)."""
+        zones = [(pad.rect.left - 24, pad.rect.right + 24) for pad in self.pads]
+        zones += [(cx - 36, cx + 36) for cx, _ in self.checkpoints]
+        if self.exit_rect:
+            zones.append((self.exit_rect.left - 24, self.exit_rect.right + 24))
+        start_x = self.data["player_start"][0]
+        zones.append((start_x, start_x + 100))
+        return zones
+
+    def _build_props(self):
+        """Scatter the theme's decorations along the ground. Looks only, no collisions."""
+        self.props = []  # (surface, x, y) in world coordinates
+        specs = self.theme.get("props", [])
+        avoid = self._prop_avoid_zones()
+        world_h = self.data.get("world_height", 650)
+        cache = {}
+        for tile in self.tiles:
+            if tile.kind != "ground":
+                continue
+            r = tile.rect
+            thin = r.height < 80
+            rnd = random.Random(r.x * 13 + r.y * 7)  # the same layout every time for a given level
+            for spec in specs:
+                anchor = spec.get("anchor", "top")
+                if anchor == "bottom" and r.bottom >= world_h - 5:
+                    continue  # the underside of a thick slab is off the bottom of the world
+                expected = r.width / 100 * spec.get("density", 1.0) * (0.7 if thin else 1.0)
+                for _ in range(int(expected + rnd.random())):
+                    x = rnd.randint(r.left + 14, r.right - 14)
+                    if any(lo <= x <= hi for lo, hi in avoid):
+                        continue
+                    key = (spec["kind"], rnd.randrange(4))
+                    if key not in cache:
+                        cache[key] = visuals.make_prop(spec, key[1], self.theme)
+                    surf = cache[key]
+                    y = r.top + 3 - surf.get_height() if anchor == "top" else r.bottom - 3
+                    self.props.append((surf, x - surf.get_width() // 2, y))
+        self.props.sort(key=lambda prop: prop[1])
+
     def set_theme(self, name):
         """Switch theme on the fly (used by the preview key in game.py)."""
         self.theme_name = name if name in THEMES else DEFAULT_THEME
         self.theme = THEMES[self.theme_name]
         self._build_surfaces()
+        self._build_props()
         for enemy in self.enemies:
             enemy.set_colour(self.theme[enemy.THEME_KEY])
 
@@ -112,6 +156,14 @@ class Level:
             block.update(dt)
 
     # ------------------------------------------------------------ drawing
+    def draw_props(self, screen, camera):
+        """Grass, cacti, icicles and the like, drawn on top of the ground."""
+        width = screen.get_width()
+        for surf, x, y in self.props:
+            sx = x - camera.offset_x
+            if -90 < sx < width + 90:
+                screen.blit(surf, (sx, y - camera.offset_y))
+
     def draw_checkpoints(self, screen, camera, active, t=0.0):
         """active is the (x, y) of the checkpoint the player last reached, or None."""
         for cx, cy in self.checkpoints:

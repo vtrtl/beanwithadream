@@ -30,6 +30,7 @@ class Game:
         self.width = 1200
         self.height = 600
         self.fps = 60
+        self.fullscreen = False
         self.screen = pygame.display.set_mode((self.width, self.height), pygame.SCALED)
         pygame.display.set_caption("Bean With A Dream")
         self.clock = pygame.time.Clock()
@@ -94,6 +95,22 @@ class Game:
         self.hint_timer = 3.0
         self.state = "playing"
 
+    @staticmethod
+    def is_fullscreen_key(event):
+        """F11, F, or Alt+Enter. (F11 is taken by "Show Desktop" on a lot of Macs, hence F.)"""
+        if event.type != pygame.KEYDOWN:
+            return False
+        if event.key in (pygame.K_F11, pygame.K_f):
+            return True
+        return event.key == pygame.K_RETURN and bool(event.mod & pygame.KMOD_ALT)
+
+    def toggle_fullscreen(self):
+        """The game is drawn at 1200x600 and scaled to fit, so any screen shape works."""
+        self.fullscreen = not self.fullscreen
+        flags = pygame.SCALED | (pygame.FULLSCREEN if self.fullscreen else 0)
+        self.screen = pygame.display.set_mode((self.width, self.height), flags)
+        self.menu.set_fullscreen_label(self.fullscreen)
+
     def apply_theme(self):
         """Build the background and ambient effects for the level's current theme."""
         theme = self.level.theme
@@ -117,10 +134,14 @@ class Game:
         while self.running:
             dt = min(self.clock.tick(self.fps) / 1000, 0.05)
             self.anim_time += dt
-            events = pygame.event.get()
-            for event in events:
+            events = []
+            for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
+                elif self.is_fullscreen_key(event):
+                    self.toggle_fullscreen()
+                else:
+                    events.append(event)
             if not self.running:
                 break
 
@@ -138,6 +159,8 @@ class Game:
     # ------------------------------------------------------------ menu
     def run_menu(self, events):
         action = self.menu.handle(events)
+        if action == "fullscreen":
+            self.toggle_fullscreen()
         if action == "play":
             self.start_level(0)
             return
@@ -402,6 +425,7 @@ class Game:
         t = self.anim_time
         self.background.draw(self.screen, self.camera.offset_x, self.camera.offset_y, t)
         self.level.draw(self.screen, self.camera, t)
+        self.level.draw_props(self.screen, self.camera)
         self.level.draw_exit(self.screen, self.camera, self.objectives.required_done, t)
         self.level.draw_checkpoints(self.screen, self.camera, self.checkpoint, t)
         self.level.draw_items(self.screen, self.camera, t)
@@ -412,6 +436,7 @@ class Game:
         self.player.draw(self.screen, self.camera)
         self.particles.draw(self.screen, self.camera)
         self.level.draw_water(self.screen, self.camera, t)
+        self.background.draw_front(self.screen, self.camera.offset_x, self.camera.offset_y, t)
         if self.ambient:
             self.ambient.draw(self.screen)
         self.draw_hud()

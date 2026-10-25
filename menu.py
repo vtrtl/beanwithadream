@@ -9,16 +9,22 @@ class MainMenu:
         cx = width // 2
         self.play_button = Button("Play", (cx, 330))
         self.quit_button = Button("Quit", (cx, 410))
+        self.fullscreen_button = Button("Fullscreen: Off", (width - 150, height - 40), size=(250, 44))
         self.title_font = pygame.font.Font(None, 110)
         self.sub_font = pygame.font.Font(None, 34)
 
+    def set_fullscreen_label(self, on):
+        self.fullscreen_button.text = "Fullscreen: On" if on else "Fullscreen: Off"
+
     def handle(self, events):
-        """Returns "play", "quit" or None."""
+        """Returns "play", "quit", "fullscreen" or None."""
         for event in events:
             if self.play_button.clicked(event):
                 return "play"
             if self.quit_button.clicked(event):
                 return "quit"
+            if self.fullscreen_button.clicked(event):
+                return "fullscreen"
             if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 return "play"
         return None
@@ -39,5 +45,6 @@ class MainMenu:
         self._text(screen, self.sub_font, "A platformer that adapts to you", (255, 255, 255), (self.width // 2, 240))
         self.play_button.draw(screen)
         self.quit_button.draw(screen)
-        self._text(screen, self.sub_font, "Enter to play  |  A / D move  |  Space jump",
+        self.fullscreen_button.draw(screen)
+        self._text(screen, self.sub_font, "Enter play  |  A / D move  |  Space jump  |  F fullscreen",
                    (255, 255, 255), (self.width // 2, self.height - 40))
