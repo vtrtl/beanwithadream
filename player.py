@@ -7,12 +7,12 @@ class Player:
     SPAWN_Y_IS_FEET = True
 
     # draw the red collision box (handy when debugging collisions)
-    SHOW_HITBOX = False
+    SHOW_HITBOX = True
 
     # Shrink the hitbox inside the visible bean, in pixels.
     # X is taken off BOTH the left and the right; TOP is taken off the head.
     # The feet stay put so the bean still stands exactly on the ground.
-    HITBOX_SHRINK_X = 5
+    HITBOX_SHRINK_X = 22
     HITBOX_SHRINK_TOP = 5
 
     def __init__(self, x, y):

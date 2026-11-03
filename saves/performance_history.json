@@ -1,23 +1,6 @@
 [
   {
     "level": "Level 1 - First Steps",
-    "time": 21.74,
-    "par_time": 90,
-    "time_ratio": 0.242,
-    "deaths": 0,
-    "death_causes": {},
-    "damage_taken": 40,
-    "defeats": {
-      "stomp": 3
-    },
-    "total_defeats": 3,
-    "objectives_done": 1,
-    "objectives_total": 1,
-    "completed": true,
-    "when": "2026-10-22 21:12:39"
-  },
-  {
-    "level": "Level 1 - First Steps",
     "time": 28.13,
     "par_time": 90,
     "time_ratio": 0.313,
@@ -624,5 +607,54 @@
     },
     "completed": true,
     "when": "2026-10-25 10:02:31"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 51.77,
+    "par_time": 100,
+    "time_ratio": 0.518,
+    "deaths": 3,
+    "death_causes": {
+      "lava": 3
+    },
+    "damage_taken": 40,
+    "defeats": {
+      "stomp": 4
+    },
+    "total_defeats": 4,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "coins": 32,
+    "coins_total": 32,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 2
+    },
+    "completed": true,
+    "when": "2026-11-03 09:32:38"
+  },
+  {
+    "level": "Level 1 - First Steps",
+    "time": 24.61,
+    "par_time": 100,
+    "time_ratio": 0.246,
+    "deaths": 0,
+    "death_causes": {},
+    "damage_taken": 20,
+    "defeats": {
+      "stomp": 3
+    },
+    "total_defeats": 3,
+    "objectives_done": 2,
+    "objectives_total": 2,
+    "coins": 30,
+    "coins_total": 32,
+    "lucky_blocks": 2,
+    "buffs_used": {
+      "speed": 1,
+      "jump": 1
+    },
+    "completed": true,
+    "when": "2026-11-03 09:35:01"
   }
 ]
