@@ -15,7 +15,7 @@ from themes import THEME_NAMES
 
 class Game:
     DEBUG = False
-    LEVELS = ["levels/level1.json", "levels/level2.json", "levels/level3.json"]
+    LEVELS = ["levels/level1.json", "levels/level2.json", "levels/level3.json"]  # in order of play
     THEME_PREVIEW = True  # press T while playing to cycle through the themes
 
     # gameplay numbers (the adaptive difficulty system will tune these later)
